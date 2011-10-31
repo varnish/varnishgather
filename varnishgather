@@ -140,6 +140,8 @@ run ip n
 run ip r
 run ip -s l
 run uname -a
+run mount
+run df -h
 
 
 banner "ps aux | egrep '(varnish|apache|mysql|nginx|httpd)'"
@@ -150,7 +152,6 @@ if [ ! -z "$2" ]; then
 	run varnishstat -1 -n $2
 fi
 
-run mount
 
 NETSTAT="/bin/netstat"
 if [ -x "$NETSTAT" ]; then
