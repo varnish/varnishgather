@@ -1,7 +1,7 @@
 #!/bin/sh
 # varnish_gather - Gather debug information for varnish issues
-# Copyright (C) 2010 Kristian Lyngstol <kristian@bohemians.org>
-# Copyright (C) 2011 Varnish Software AS
+# Copyright (C) 2010-2011 Varnish Software AS
+# Author: Kristian Lyngstol <kristian@varnish-cache.org>
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,21 +17,26 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Version: 1.0
-# Date: Fri Apr  8 13:16:26 CEST 2011
-#
 #
 # Mostly harmless.
 
+# Defines
+
 HOSTPORT="localhost:6082"
+VARNISHADMARG=""
 SECRET=""
 ITEM=0
 TOPDIR="$(mktemp -d /tmp/varnishgather.XXXXXXXX)"
 DIR="${TOPDIR}/varnishgather"
-mkdir -p ${DIR}
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
+
+# Set up environment
+
+mkdir -p ${DIR}
 cd ${DIR}
+
+# Helpers
 
 log()
 {
@@ -56,7 +61,8 @@ banner()
 run()
 {
 	banner "$*"
-	$* >> ${LOG}
+	$* >> ${LOG} 2>&1
+	log ""
 }
 
 mycat()
@@ -66,9 +72,16 @@ mycat()
 	fi
 }
 
+vadmin()
+{
+	if [ ! -z "${VARNISHADMARG}" ]; then
+		run varnishadm ${VARNISHADMARG} $* 2>/dev/null
+	fi
+}
+
 getarg() {
 	ret=""
-	for a in `pidof varnishd`; do
+	for a in `pgrep varnishd`; do
 		tmpret=$(awk -v RS='[[:cntrl:]]' -v arg=$1 's == 1 { sec=$0 }; $0 == arg {s=1}$0 != arg  {s=0} END { print sec };' /proc/${a}/cmdline)
 		if [ x$ret != "x" ] && [ $ret != $tmpret ]; then
 			log "Weird argument mismatch: $ret vs $tmpret found"
@@ -78,6 +91,10 @@ getarg() {
 	done
 	echo ${ret}
 }
+
+##############################
+# Proper execution starts here
+##############################
 
 HOSTPORT=$(getarg -T)
 if [ -z "$HOSTPORT" ]; then
@@ -114,6 +131,17 @@ mycat /proc/version
 
 run free -m
 run vmstat 5 5
+run lsb_release -a
+run sysctl -a
+run varnishstat -V
+run netstat -s
+run ip a
+run ip n
+run ip r
+run ip -s l
+run uname -a
+
+
 banner "ps aux | egrep '(varnish|apache|mysql|nginx|httpd)'"
 ps aux | egrep '(varnish|apache|mysql|nginx|httpd)' >> ${LOG}
 run varnishstat -1
@@ -130,21 +158,35 @@ if [ -x "$NETSTAT" ]; then
 	run ${NETSTAT} -np
 fi
 
+run iptables -n -L
+
+for a in /etc/varnish/*vcl; do
+	mycat $a
+done
+
 mycat /etc/default/varnish
 mycat /etc/sysconfig/varnish
 
 run find /usr/local -name varnish
 
-if [ ! -z "${VARNISHADMARG}" ]; then
-	run varnishadm ${VARNISHADMARG} vcl.list
-	run varnishadm ${VARNISHADMARG} vcl.show boot
-	run varnishadm ${VARNISHADMARG} param.show
-	run varnishadm ${VARNISHADMARG} purge.list
-else
-	banner "NO ADMINPORT SUPPLIED"
+if [ -z "${VARNISHADMARG}" ]; then
+	banner "NO ADMINPORT SUPPLIED OR FOUND"
 fi
-run varnishlog -d -k 200 -w ${DIR}/varnishlog.raw
+
+# vadmin() tests for VARNISHADMARG as necessary
+
+vadmin vcl.list
+vadmin vcl.show boot
+vadmin param.show
+vadmin purge.list
+vadmin ban.list
+vadmin debug.health
+vadmin panic.show
+
+run varnishlog -d -k 5000 -w ${DIR}/varnishlog.raw
 banner "End"
+
+
 cd ${TOPDIR}
 DATE="$(date +%Y-%m-%d-%H%M%S)"
 tar czf ${TOPDIR}/varnishgather.tar.gz varnishgather/
