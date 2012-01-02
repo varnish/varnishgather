@@ -20,9 +20,13 @@
 #
 # Mostly harmless.
 
+export LC_ALL=C
+
+
 # Defines
 
-HOSTPORT="localhost:6082"
+HOSTPORT=""
+NAME=""
 VARNISHADMARG=""
 SECRET=""
 ITEM=0
@@ -65,6 +69,35 @@ run()
 	log ""
 }
 
+runpipe_recurse() {
+	CMD="$1";
+	shift;
+	if [ "x$*" = "x" ]; then 
+		${CMD} 2>&1
+	else
+		${CMD} 2>&1 | runpipe_recurse "$@"
+	fi
+}
+
+pipeprint()
+{
+	CMD="$1";
+	shift;
+	if [ "x$*" = "x" ]; then 
+		echo ${CMD}
+	else
+		echo ${CMD} "|" $(pipeprint "$@")
+	fi
+		
+
+}
+runpipe()
+{
+	banner $(pipeprint "$@")
+	runpipe_recurse "$@" >> ${LOG} 2>&1
+	log ""
+}
+
 mycat()
 {
 	if [ -r $1 ]; then
@@ -92,27 +125,83 @@ getarg() {
 	echo ${ret}
 }
 
+usage() {
+	echo "Usage: $0 [-n|--name name] [-T host:port] [-S secretfile] [-h|--help]"
+	echo
+	echo "Varnishgather gathers various system information into a single"
+	echo "tar-ball."
+	echo
+	cat <<_EOF_
+ -n, --name name      Provide the name, same as the -n argument to varnishd
+ -T <host:port>       Provide host and port for the management interface
+                      Same as the -T option to varnishd.
+ -S <secretfile>      Provide a secret file, same as -S to varnishd.
+ -h, --help           Show this text.
+
+All arguments are optional. varnishgather will attempt to detect the
+arguments automatically, but will likely be confused if you have multiple
+varnish servers running. In other words: Use -T, -n and -S if you have
+multiple varnishd servers running on the same server.
+_EOF_
+	exit 1
+}
+
 ##############################
 # Proper execution starts here
 ##############################
 
-HOSTPORT=$(getarg -T)
+info "Working directory: ${DIR}"
+
+TEMP=`getopt -o n:T:S:h -l name:,help -n varnishgather -- "$@"`
+
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+
+eval set -- "$TEMP"
+
+while true ; do
+        case "$1" in
+                -n|--name) NAME=$2 ; shift 2;;
+                -T) HOSTPORT=$2; shift 2;;
+		-S) 
+			if [ -r $2 ]; then
+				SECRET="-S $2";
+			else
+				info "Secret file $2 not readable."
+				exit 1;
+			fi
+			shift 2;;
+                -h|--help) usage; exit 0 ;; 
+                --) shift; break;;
+                *) echo "internal error"; exit 1;;
+        esac
+done
+
 if [ -z "$HOSTPORT" ]; then
-	info "Without a hostname:port for the admin interface, this script is less useful"
-else
-	banner "Found hostport(-T argument): ${HOSTPORT}"
+	HOSTPORT=$(getarg -T)
+	if [ -z "$HOSTPORT" ]; then
+		info "Without a hostname:port for the admin interface, this script is less useful"
+	else
+		banner "Found hostport(-T argument): ${HOSTPORT}"
+	fi
 fi
 
-sec=$(getarg -S)
-if [ ! -z ${sec} ]; then
-	if [ -r ${sec} ]; then
-		banner "Found secretfile(-S argument) ${sec} and it's readable. Using it."
-		SECRET="-S ${sec}"
-	elif [ -f /etc/varnish/secret ]; then
-		banner "Found secretfile(-S argument) ${sec} but it's not readable"
+if [ -z "$SECRET" ]; then
+	sec=$(getarg -S)
+	if [ ! -z ${sec} ]; then
+		if [ -r ${sec} ]; then
+			banner "Found secretfile(-S argument) ${sec} and it's readable. Using it."
+			SECRET="-S ${sec}"
+		elif [ -f /etc/varnish/secret ]; then
+			banner "Found secretfile(-S argument) ${sec} but it's not readable"
+		fi
+	else
+		banner "Didn't find any -S argument"
 	fi
-else
-	banner "Didn't find any -S argument"
+fi
+
+STATCMD=""
+if [ ! -z "$NAME" ]; then
+	STATCMD="-n $NAME"
 fi
 
 VARNISHADMARG="${SECRET} -T ${HOSTPORT}"
@@ -129,6 +218,9 @@ done
 mycat /proc/cpuinfo
 mycat /proc/version
 
+runpipe "ps aux" "egrep '(varnish|apache|mysql|nginx|httpd)'"
+runpipe "netstat -np" "wc -l"
+runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run free -m
 run vmstat 5 5
 run lsb_release -a
@@ -146,12 +238,7 @@ run df -h
 
 banner "ps aux | egrep '(varnish|apache|mysql|nginx|httpd)'"
 ps aux | egrep '(varnish|apache|mysql|nginx|httpd)' >> ${LOG}
-run varnishstat -1
-
-if [ ! -z "$2" ]; then
-	run varnishstat -1 -n $2
-fi
-
+run varnishstat -1 $STATCMD
 
 NETSTAT="/bin/netstat"
 if [ -x "$NETSTAT" ]; then
@@ -184,7 +271,8 @@ vadmin ban.list
 vadmin debug.health
 vadmin panic.show
 
-run varnishlog -d -k 5000 -w ${DIR}/varnishlog.raw
+run varnishlog -d -k 5000 -w ${DIR}/varnishlog.raw $STATCMD
+
 banner "End"
 
 
