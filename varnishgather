@@ -65,7 +65,7 @@ banner()
 run()
 {
 	banner "$*"
-	$* >> ${LOG} 2>&1
+	($*) >> ${LOG} 2>&1
 	log ""
 }
 
@@ -114,7 +114,15 @@ vadmin()
 
 getarg() {
 	ret=""
+	if ! which awk >/dev/null; then
+		info "awwww. No awk found. Automatic argument detection disabled."
+		return
+	fi
 	for a in `pgrep varnishd`; do
+		if [ ! -d /proc/${a} ]; then
+			info "proc nonfunctional. Automatic argument detection disabled."
+			return
+		fi
 		tmpret=$(awk -v RS='[[:cntrl:]]' -v arg=$1 's == 1 { sec=$0 }; $0 == arg {s=1}$0 != arg  {s=0} END { print sec };' /proc/${a}/cmdline)
 		if [ x$ret != "x" ] && [ $ret != $tmpret ]; then
 			log "Weird argument mismatch: $ret vs $tmpret found"
@@ -126,17 +134,17 @@ getarg() {
 }
 
 usage() {
-	echo "Usage: $0 [-n|--name name] [-T host:port] [-S secretfile] [-h|--help]"
-	echo
-	echo "Varnishgather gathers various system information into a single"
-	echo "tar-ball."
-	echo
 	cat <<_EOF_
- -n, --name name      Provide the name, same as the -n argument to varnishd
+Usage: $0 [-n name] [-T host:port] [-S secretfile] [-h]
+
+Varnishgather gathers various system information into a single
+tar-ball.
+
+ -n <name>            Provide the name, same as the -n argument to varnishd
  -T <host:port>       Provide host and port for the management interface
                       Same as the -T option to varnishd.
  -S <secretfile>      Provide a secret file, same as -S to varnishd.
- -h, --help           Show this text.
+ -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
 arguments automatically, but will likely be confused if you have multiple
@@ -152,7 +160,7 @@ _EOF_
 
 info "Working directory: ${DIR}"
 
-TEMP=`getopt -o n:T:S:h -l name:,help -n varnishgather -- "$@"`
+TEMP=`getopt n:T:S:h "$@"`
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
@@ -160,7 +168,7 @@ eval set -- "$TEMP"
 
 while true ; do
         case "$1" in
-                -n|--name) NAME=$2 ; shift 2;;
+                -n) NAME=$2 ; shift 2;;
                 -T) HOSTPORT=$2; shift 2;;
 		-S) 
 			if [ -r $2 ]; then
@@ -170,12 +178,11 @@ while true ; do
 				exit 1;
 			fi
 			shift 2;;
-                -h|--help) usage; exit 0 ;; 
+                -h) usage; exit 0 ;; 
                 --) shift; break;;
                 *) echo "internal error"; exit 1;;
         esac
 done
-
 if [ -z "$HOSTPORT" ]; then
 	HOSTPORT=$(getarg -T)
 	if [ -z "$HOSTPORT" ]; then
@@ -206,6 +213,7 @@ fi
 
 VARNISHADMARG="${SECRET} -T ${HOSTPORT}"
 banner "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+run date
 run dmesg
 mycat /var/log/dmesg
 
