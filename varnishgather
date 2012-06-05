@@ -112,6 +112,13 @@ vadmin()
 	fi
 }
 
+vadmin_getvcls()
+{
+	if [ ! -z "${VARNISHADMARG}" ]; then
+		varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}' 2>/dev/null
+	fi
+}
+
 getarg() {
 	ret=""
 	if ! which awk >/dev/null; then
@@ -272,12 +279,21 @@ fi
 # vadmin() tests for VARNISHADMARG as necessary
 
 vadmin vcl.list
-vadmin vcl.show boot
+vcls=$(vadmin_getvcls)
+if [ -n "$vcls" ]; then
+	for vcl in $vcls; do
+		vadmin vcl.show $vcl
+	done
+fi
+
 vadmin param.show
 vadmin purge.list
 vadmin ban.list
 vadmin debug.health
 vadmin panic.show
+
+
+
 
 run varnishlog -d -k 5000 -w ${DIR}/varnishlog.raw $STATCMD
 

@@ -26,7 +26,7 @@ including but not limited to:
   possibly similar commands. All with various information-gathering
   options.
 * Any bans currently active
-* Any loaded vcl called ``boot``.
+* Any loaded vcl.
 * ``varnishstat -1`` output
 * ``panic.show`` (on CLI) output
 
