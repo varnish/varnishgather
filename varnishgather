@@ -119,6 +119,23 @@ vadmin_getvcls()
 	fi
 }
 
+findvcls() {
+	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
+    
+	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
+		is_absolute=$(echo $file | sed -e '/^\//!d')
+		if [ -z "$is_absolute" ]; then
+			file="/etc/varnish/$file"
+		fi
+	
+		if [ -e "$file" ]; then
+			echo $file;
+		fi
+	done | sort | uniq)
+    
+	echo $vcls
+}
+
 getarg() {
 	ret=""
 	if ! which awk >/dev/null; then
@@ -263,7 +280,7 @@ fi
 
 run iptables -n -L
 
-for a in /etc/varnish/*vcl; do
+for a in $(findvcls); do
 	mycat $a
 done
 
