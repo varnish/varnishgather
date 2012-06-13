@@ -309,7 +309,7 @@ vadmin ban.list
 vadmin debug.health
 vadmin panic.show
 
-run varnishlog -d -k 5000 -w ${DIR}/varnishlog.raw $STATCMD
+run varnishlog -d -k 20000 -w ${DIR}/varnishlog.raw $STATCMD
 
 banner "End"
 
