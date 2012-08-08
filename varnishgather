@@ -147,7 +147,7 @@ getarg() {
 			info "proc nonfunctional. Automatic argument detection disabled."
 			return
 		fi
-		tmpret=$(awk -v RS='[[:cntrl:]]' -v arg=$1 's == 1 { sec=$0 }; $0 == arg {s=1}$0 != arg  {s=0} END { print sec };' /proc/${a}/cmdline)
+		tmpret=$(awk -v RS='\\x00' -v arg=$1 's == 1 { sec=$0 }; $0 == arg {s=1}$0 != arg  {s=0} END { print sec };' /proc/${a}/cmdline)
 		if [ x$ret != "x" ] && [ $ret != $tmpret ]; then
 			log "Weird argument mismatch: $ret vs $tmpret found"
 			info "(Using last found/listed)"
@@ -212,7 +212,8 @@ if [ -z "$HOSTPORT" ]; then
 	if [ -z "$HOSTPORT" ]; then
 		info "Without a hostname:port for the admin interface, this script is less useful"
 	else
-		banner "Found hostport(-T argument): ${HOSTPORT}"
+		info "Found hostport(-T argument): ${HOSTPORT}"
+		HOSTPORT="-T ${HOSTPORT}"
 	fi
 fi
 
@@ -220,23 +221,33 @@ if [ -z "$SECRET" ]; then
 	sec=$(getarg -S)
 	if [ ! -z ${sec} ]; then
 		if [ -r ${sec} ]; then
-			banner "Found secretfile(-S argument) ${sec} and it's readable. Using it."
+			info "Found secretfile(-S argument) ${sec} and it's readable. Using it."
 			SECRET="-S ${sec}"
 		elif [ -f /etc/varnish/secret ]; then
-			banner "Found secretfile(-S argument) ${sec} but it's not readable"
+			info "Found secretfile(-S argument) ${sec} but it's not readable"
 		fi
 	else
-		banner "Didn't find any -S argument"
+		info "Didn't find any -S argument"
 	fi
 fi
 
 STATCMD=""
+if [ -z "$NAME" ]; then
+	NAMEARG=$(getarg -n)
+	if [ ! -z "$NAMEARG" ]; then
+		info "Found name: $NAMEARG"
+		NAME="$NAMEARG"
+	else
+		info "No -n argument found."
+	fi
+fi
+
 if [ ! -z "$NAME" ]; then
 	STATCMD="-n $NAME"
 fi
 
-VARNISHADMARG="${SECRET} -T ${HOSTPORT}"
-banner "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+VARNISHADMARG="${SECRET} ${HOSTPORT}"
+info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
 run date
 run dmesg
 mycat /var/log/dmesg
