@@ -335,9 +335,9 @@ if [ ! -f $copyto ]; then
 	cp ${LOG} $copyto || exit 1
 	echo "Log is in ${copyto}."
 fi
-copytogz="varnishgather.${DATE}.tar.gz"
-if [ ! -f $copytogz ]; then
-	cp ${TOPDIR}/varnishgather.tar.gz $copytogz || exit 1
+copytotgz="varnishgather.${DATE}.tar.gz"
+if [ ! -f $copytotgz ]; then
+	cp ${TOPDIR}/varnishgather.tar.gz $copytotgz || exit 1
 	echo "Data to submit: $copytotgz (includes log)"
 	echo " You can delete the workdir: rm -r ${TOPDIR}"
 fi
