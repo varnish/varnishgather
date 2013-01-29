@@ -270,6 +270,8 @@ run vmstat 5 5
 run lsb_release -a
 run sysctl -a
 run varnishstat -V
+runpipe "dpkg -l" "grep varnish"
+runpipe "rpm -qa" "grep varnish"
 run netstat -s
 run ip a
 run ip n
