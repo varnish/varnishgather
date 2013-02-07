@@ -301,6 +301,10 @@ done
 mycat /etc/default/varnish
 mycat /etc/sysconfig/varnish
 
+for pid in $(pidof varnishd); do
+    runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
+done
+
 run find /usr/local -name varnish
 
 if [ -z "${VARNISHADMARG}" ]; then
