@@ -1,18 +1,18 @@
 #!/bin/sh
 # varnish_gather - Gather debug information for varnish issues
-# Copyright (C) 2010-2011 Varnish Software AS
+# Copyright (C) 2010-2013 Varnish Software AS
 # Author: Kristian Lyngstol <kristian@varnish-cache.org>
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -73,7 +73,7 @@ run()
 runpipe_recurse() {
 	CMD="$1";
 	shift;
-	if [ "x$*" = "x" ]; then 
+	if [ "x$*" = "x" ]; then
 		${CMD} 2>&1
 	else
 		${CMD} 2>&1 | runpipe_recurse "$@"
@@ -84,12 +84,12 @@ pipeprint()
 {
 	CMD="$1";
 	shift;
-	if [ "x$*" = "x" ]; then 
+	if [ "x$*" = "x" ]; then
 		echo ${CMD}
 	else
 		echo ${CMD} "|" $(pipeprint "$@")
 	fi
-		
+
 
 }
 runpipe()
@@ -122,18 +122,18 @@ vadmin_getvcls()
 
 findvcls() {
 	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
-    
+
 	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
 		if [ -z "$is_absolute" ]; then
 			file="/etc/varnish/$file"
 		fi
-	
+
 		if [ -e "$file" ]; then
 			echo $file;
 		fi
 	done | sort | uniq)
-    
+
 	echo $vcls
 }
 
@@ -195,7 +195,7 @@ while true ; do
         case "$1" in
                 -n) NAME=$2 ; shift 2;;
                 -T) HOSTPORT=$2; shift 2;;
-		-S) 
+		-S)
 			if [ -r $2 ]; then
 				SECRET="-S $2";
 			else
@@ -203,7 +203,7 @@ while true ; do
 				exit 1;
 			fi
 			shift 2;;
-                -h) usage; exit 0 ;; 
+                -h) usage; exit 0 ;;
                 --) shift; break;;
                 *) echo "internal error"; exit 1;;
         esac
