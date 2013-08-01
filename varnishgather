@@ -328,24 +328,24 @@ vadmin ban.list
 vadmin debug.health
 vadmin panic.show
 
-run varnishlog -d -k 20000 -w ${DIR}/varnishlog.raw $STATCMD
+run varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" "$STATCMD"
 
 banner "End"
 
 
-cd ${TOPDIR}
+cd "${TOPDIR}"
 DATE="$(date +%Y-%m-%d-%H%M%S)"
-tar czf ${TOPDIR}/varnishgather.tar.gz "$RELDIR"
-echo Log: ${LOG}
-cd $ORIGPWD
+tar czf "${TOPDIR}/varnishgather.tar.gz" "$RELDIR"
+echo "Log: ${LOG}"
+cd "$ORIGPWD"
 copyto="varnishgather.${DATE}.log"
 if [ ! -f $copyto ]; then
-	cp ${LOG} $copyto || exit 1
+	cp "${LOG}" "$copyto" || exit 1
 	echo "Log is in ${copyto}."
 fi
 copytogz="varnishgather.${DATE}.tar.gz"
-if [ ! -f $copytogz ]; then
-	cp ${TOPDIR}/varnishgather.tar.gz $copytogz || exit 1
+if [ ! -f "$copytogz" ]; then
+	cp "${TOPDIR}/varnishgather.tar.gz" "$copytogz" || exit 1
 	echo "Data to submit: $copytogz (includes log)"
 	echo " You can delete the workdir: rm -r ${TOPDIR}"
 fi
