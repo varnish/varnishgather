@@ -62,20 +62,20 @@ logname() {
 
 log()
 {
-	echo >>${LOG} "$*"
+	echo >>${LOG} "$@"
 }
 
 info()
 {
-	echo 1>&2 "$*"
-	log "$*"
+	echo 1>&2 "$@"
+	log "$@"
 }
 
 banner()
 {
 	log "--------------------------------"
-	log "Item $ITEM: $*"
-	log
+	log "Item $ITEM: $@"
+	log "--------------------------------"
 	ITEM=$(( $ITEM + 1 ))
 	echo "Task: ${ITEM}: $*"
 }
