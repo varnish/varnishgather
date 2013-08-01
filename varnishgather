@@ -49,6 +49,16 @@ trap cleanup EXIT
 
 # Helpers
 
+# Takes a string, translates it into something we can use as a log
+# file name
+
+item_num() {
+    printf "%.2d" "$ITEM"
+}
+
+logname() {
+    echo "$@" | tr -c '[:alnum:]-' '[_*]' | sed 's/_*$//'
+}
 
 log()
 {
