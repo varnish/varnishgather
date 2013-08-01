@@ -275,8 +275,8 @@ run dmesg
 mycat /var/log/dmesg
 
 for a in /var/log/messages /var/log/syslog; do
-	if [ -r $a ]; then
-		run grep varnish $a
+	if [ -r "$a" ]; then
+		run grep varnish "$a"
 	fi
 done
 
@@ -305,8 +305,8 @@ run varnishstat -1 $STATCMD
 
 NETSTAT="/bin/netstat"
 if [ -x "$NETSTAT" ]; then
-	run ${NETSTAT} -nlpt
-	run ${NETSTAT} -np
+	run "${NETSTAT}" -nlpt
+	run "${NETSTAT}" -np
 fi
 
 run iptables -n -L
@@ -332,10 +332,10 @@ fi
 # vadmin() tests for VARNISHADMARG as necessary
 
 vadmin vcl.list
-vcls=$(vadmin_getvcls)
+vcls="$(vadmin_getvcls)"
 if [ -n "$vcls" ]; then
 	for vcl in $vcls; do
-		vadmin vcl.show $vcl
+		vadmin vcl.show "$vcl"
 	done
 fi
 
