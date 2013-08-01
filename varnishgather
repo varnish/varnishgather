@@ -82,9 +82,11 @@ banner()
 
 run()
 {
-	banner "$*"
-	($*) >> ${LOG} 2>&1
-	log ""
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_$(logname "$@")"
+	banner "$@"
+	("$@") >> ${LOG} 2>&1
+	LOG="$OLDLOG"
 }
 
 runpipe_recurse() {
@@ -111,9 +113,11 @@ pipeprint()
 }
 runpipe()
 {
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner $(pipeprint "$@")
 	runpipe_recurse "$@" >> ${LOG} 2>&1
-	log ""
+	LOG="$OLDLOG"
 }
 
 mycat()
