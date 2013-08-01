@@ -9,29 +9,74 @@ from subprocess import Popen, PIPE
 import tarfile
 import time
 import cStringIO as StringIO
+import re
 
 os.environ["LC_ALL"] = "C"
 
 HOSTNAME = os.uname()[1]
 ID = "varnishgather-%s-%s" % (HOSTNAME, time.strftime("%Y-%m-%d"),)
-class LoggedCommand:
-    num = 0
 
-    def __init__(self, cmd, prefix=ID, filter=None):
-        self.order = LoggedCommand.num
-        LoggedCommand.num += 1
+simplecommands = (('date',),
+                  ('dmesg',),
+                  ('free', '-m',),
+#                  ('vmstat', '5', '5',),
+                  ('lsb_release', '-a',),
+                  ('varnishstat', '-V',),
+                  ('sysctl', '-a',),
+                  ('dpkg', '-l', '*varnish*',),
+                  ('netstat', '-s',),
+                  ('ip', 'a',),
+                  ('ip', 'n',),
+                  ('ip', 'r',),
+                  ('ip', '-s', 'l',),
+                  ('uname', '-a',),
+                  ('mount',),
+                  ('df', '-h',),
+                  ('netstat', '-nlpt',),
+                  ('netstat', '-np',),
+                  ('find', '/usr/local', '-name', 'varnish',),
+                  ('grep', '-s', 'varnish', '/var/log/messages',),
+                  ('grep', '-s', 'varnish', '/var/log/syslog',),
+                  )
+
+
+fileincludes = (
+        '/var/log/dmesg',
+        '/proc/cpuinfo',
+        '/proc/version',
+        '/etc/default/varnish',
+        '/etc/sysconfig/varnish',
+)
+
+def filter_fname(name):
+    f = lambda x: ("_", x)[x in string.ascii_letters + string.digits]
+    return "".join(map(f, name))
+
+def static_var(varname, value):
+    def decorate(func):
+        setattr(func, varname, value)
+        return func
+    return decorate
+
+@static_var("counter", 0)
+def item():
+    item.counter += 1
+    return item.counter
+
+itemnum = 0
+class LoggedCommand:
+    def __init__(self, cmd, prefix=ID, filter_stdout=None):
         self.command = cmd
         self.has_run = False
         self.stdout = None
         self.stderr = None
-        self.filter = filter
+        self.filter_stdout = filter_stdout
         self.logfile = None
         self.prefix = prefix
 
     def log_name(self):
-        f = lambda x: ("_", x)[x in string.ascii_letters + string.digits]
-        fname = "".join(map(f, " ".join(self.command)))
-        return os.path.join(self.prefix, "%.3d_%s" % (self.order, fname,))
+        fname = filter_fname(" ".join(self.command))
+        return os.path.join(self.prefix, "%.3d_%s" % (item(), fname,))
 
     def get_log(self):
         if self.logfile is None:
@@ -41,13 +86,13 @@ class LoggedCommand:
         self.logfile.write("Command: %s\n" % (" ".join(self.command), ))
         self.logfile.write("=" * 79)
         self.logfile.write("\nSTDOUT:\n")
-        self.logfile.write(self.stdout.read())
+        self.logfile.write("".join(filter(self.filter_stdout, self.stdout.readlines())))
         self.logfile.write("\nSTDERR:\n")
         self.logfile.write(self.stderr.read())
         return self.logfile
 
     def run(self):
-        p = Popen(self.command, shell=True, stdout=PIPE, stderr=PIPE)
+        p = Popen(self.command, stdout=PIPE, stderr=PIPE)
         self.stdout = p.stdout
         self.stderr = p.stderr
 
@@ -64,6 +109,27 @@ class LoggedCommand:
         log.seek(0)
         tar.addfile(tinfo, log)
 
+class FileInclude:
+    def __init__(self, filename, prefix=ID):
+        self.filename = filename
+        self.prefix = prefix
+
+    def __call__(self, tar=None):
+        try:
+            # Need to do this somewhat roundaboutish, since we include
+            # files from /proc which aren't real files
+            f = StringIO.StringIO()
+            f.write(open(self.filename, "r").read())
+            fname = "%.3d_%s" % (item(), filter_fname(self.filename))
+            tinfo = tarfile.TarInfo(name=os.path.join(self.prefix, fname))
+            f.seek(0, os.SEEK_END)
+            tinfo.size = f.tell()
+            f.seek(0)
+            tar.addfile(tinfo, f)
+        except IOError:
+            # File didn't exist, most likely
+            pass
+
 def get_tarfile():
     outfile = "%s.tar.gz" % (ID,)
     tar = tarfile.open(outfile, "w:gz")
@@ -71,8 +137,15 @@ def get_tarfile():
 
 tar = get_tarfile()
 
-LoggedCommand(["date"])(tar)
-LoggedCommand(["dmesg"])(tar)
+for cmd in simplecommands:
+    print "Running %s" % (" ".join(cmd))
+    LoggedCommand(cmd)(tar)
+
+print "Including files"
+for f in fileincludes:
+    FileInclude(f)(tar)
+
+LoggedCommand(["ps", "aux"], filter_stdout=lambda x: re.search(r'(varnish|apache|mysql|nginx|httpd|stud|stunnel)', x))(tar)
 
 tar.close()
 
@@ -80,42 +153,14 @@ print "=" * 79
 print "Please submit the file:\n%s" % (tar.name,)
 print "=" * 79
 
-#mycat /var/log/dmesg
 
-#for a in /var/log/messages /var/log/syslog; do
-#	if [ -r "$a" ]; then
-#		run grep varnish "$a"
-#	fi
-#done
 
-#mycat /proc/cpuinfo
-#mycat /proc/version
-
-#runpipe "ps aux" "egrep (varnish|apache|mysql|nginx|httpd|stud|stunnel)"
+#runpipe "rpm -qa" "grep varnish"
+#runpipe "ps aux" "egrep "
 #runpipe "netstat -np" "wc -l"
 #runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
-#run free -m
-#run vmstat 5 5
-#run lsb_release -a
-#run sysctl -a
-#run varnishstat -V
-#run dpkg -l \*varnish\*
 #runpipe "rpm -qa" "grep varnish"
-#run netstat -s
-#run ip a
-#run ip n
-#run ip r
-#run ip -s l
-#run uname -a
-#run mount
-#run df -h
 #run varnishstat -1 $STATCMD
-
-#NETSTAT="/bin/netstat"
-#if [ -x "$NETSTAT" ]; then
-#	run "${NETSTAT}" -nlpt
-#	run "${NETSTAT}" -np
-#fi
 
 #run iptables -n -L
 
@@ -123,15 +168,11 @@ print "=" * 79
 #	mycat $a
 #done
 
-#mycat /etc/default/varnish
-#mycat /etc/sysconfig/varnish
 #mycat /proc/$(pgrep -n varnishd)/limits
 
 #for pid in $(pidof varnishd); do
 #    runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 #done
-
-#run find /usr/local -name varnish
 
 #if [ -z "${VARNISHADMARG}" ]; then
 #	banner "NO ADMINPORT SUPPLIED OR FOUND"
