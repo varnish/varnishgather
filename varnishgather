@@ -200,6 +200,14 @@ _EOF_
 	exit 1
 }
 
+if [ "$(id -u)" -ne "0" ]; then
+    echo "#######################################################"
+    echo "Running as non-root, the results might not be complete."
+    echo "Please run again as root."
+    echo "#######################################################"
+    sleep 10
+fi
+
 ##############################
 # Proper execution starts here
 ##############################
