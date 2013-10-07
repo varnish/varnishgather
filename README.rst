@@ -5,19 +5,19 @@ Varnishgather is a simple script designed to gather as much relevant
 information as possible on a Varnish Cache setup.
 
 Primary platforms so far are Debian-based systems (including Ubuntu) and
-RHEL-based systems (including centos, I suppose).
+RHEL-based systems (including CentoS/other derivatives.).
 
 What does varnishgather gather
 ------------------------------
 
-It gathers various statistics, metrics and facts about your system. It does
-not under any circumstance transmit this information to others, it only
-creates a tar-ball of it. It is up to you what to do with it.
+Varnishgather gathers various statistics, metrics and facts about your system.
+These are output into a .tar.gz archive file. It is up to you what to do with it.
 
-The tar-ball currently contains two files: a raw ``varnishlog`` file, which
-can be reviewed using ``varnishlog -r``, and a regular varnishgather log
-file. The varnishgather log file contains most of the information,
-including but not limited to:
+The tar-ball currently contains a set of text files for different
+probes or tests, and a small raw ``varnishlog`` file which can be reviewed
+using ``varnishlog -r``.
+
+The probes/tests include information similar to:
 
 * Any VCL files found in /etc/varnish/ (``*.vcl``, so
   ``/etc/varnish/secret`` is *not* included)
