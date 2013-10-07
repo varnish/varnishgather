@@ -278,6 +278,7 @@ fi
 
 VARNISHADMARG="${SECRET} ${HOSTPORT}"
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+run varnishd -V
 run date
 run dmesg
 mycat /var/log/dmesg
