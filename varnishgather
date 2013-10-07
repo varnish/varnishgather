@@ -161,12 +161,12 @@ findvcls() {
 getarg() {
 	ret=""
 	if ! which awk >/dev/null; then
-		info "awwww. No awk found. Automatic argument detection disabled."
+		info "No awk found. Automatic argument detection disabled."
 		return
 	fi
 	for a in `pgrep varnishd`; do
 		if [ ! -d /proc/${a} ]; then
-			info "proc nonfunctional. Automatic argument detection disabled."
+			info "proc non-functional. Automatic argument detection disabled."
 			return
 		fi
 		tmpret=$(awk -v RS='\\x00' -v arg=$1 's == 1 { sec=$0 }; $0 == arg {s=1}$0 != arg  {s=0} END { print sec };' /proc/${a}/cmdline)
