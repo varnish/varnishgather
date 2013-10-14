@@ -103,6 +103,7 @@ class LoggedCommand:
 
     def add_to_tarfile(self, tar):
         tinfo = tarfile.TarInfo(name=self.log_name())
+        tinfo.mtime = time.time()
         log = self.get_log()
         log.seek(0, os.SEEK_END)
         tinfo.size = log.tell()
@@ -122,6 +123,7 @@ class FileInclude:
             f.write(open(self.filename, "r").read())
             fname = "%.3d_%s" % (item(), filter_fname(self.filename))
             tinfo = tarfile.TarInfo(name=os.path.join(self.prefix, fname))
+            tinfo.mtime = os.stat(self.filename).st_mtime
             f.seek(0, os.SEEK_END)
             tinfo.size = f.tell()
             f.seek(0)
