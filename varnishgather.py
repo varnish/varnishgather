@@ -40,6 +40,13 @@ simplecommands = (('date',),
                   ('iptables', '-n', '-L',),
                   )
 
+# Format is (command, filter, countonly)
+filteredcommands = (
+    (["ps", "aux"], lambda x: re.search(r'(varnish|apache|mysql|nginx|httpd|stud|stunnel)', x), False),
+    (["rpm", "-qa"],  lambda x: re.search(r'varnish', x), False),
+    (["netstat", "-np"], None, True,),
+    (["netstat", "-np"], lambda x: re.search(r'ESTABLISHED', x), True,),
+)
 
 fileincludes = (
         '/var/log/dmesg',
@@ -152,11 +159,13 @@ for cmd in simplecommands:
     print "Running %s" % (" ".join(cmd))
     LoggedCommand(cmd)(tar)
 
+for (cmd, filter_stdout, only_count) in filteredcommands:
+    print "Running filtered %s %s" % (" ".join(cmd), filter_stdout)
+    LoggedCommand(cmd, filter_stdout=filter_stdout, only_count=only_count)(tar)
+
 print "Including files"
 for f in fileincludes:
     FileInclude(f)(tar)
-
-LoggedCommand(["ps", "aux"], filter_stdout=lambda x: re.search(r'(varnish|apache|mysql|nginx|httpd|stud|stunnel)', x))(tar)
 
 tar.close()
 
