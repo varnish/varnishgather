@@ -173,16 +173,8 @@ print "=" * 79
 print "Please submit the file:\n%s" % (tar.name,)
 print "=" * 79
 
-
-
-#runpipe "rpm -qa" "grep varnish"
-#runpipe "ps aux" "egrep "
-#runpipe "netstat -np" "wc -l"
-#runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
-#runpipe "rpm -qa" "grep varnish"
 #run varnishstat -1 $STATCMD
 
-#run iptables -n -L
 
 #for a in $(findvcls); do
 #	mycat $a
