@@ -66,7 +66,7 @@ def item():
 
 itemnum = 0
 class LoggedCommand:
-    def __init__(self, cmd, prefix=ID, filter_stdout=None):
+    def __init__(self, cmd, prefix=ID, filter_stdout=None, only_count=False):
         self.command = cmd
         self.has_run = False
         self.output = None
@@ -74,6 +74,7 @@ class LoggedCommand:
         self.filter_stdout = filter_stdout
         self.logfile = None
         self.prefix = prefix
+        self.only_count = only_count
 
     def log_name(self):
         fname = filter_fname(" ".join(self.command))
@@ -100,7 +101,10 @@ class LoggedCommand:
             self.output = ""
             self.err_output = str(e)
         else:
-            self.output = "".join(filter(self.filter_stdout, p.stdout.readlines()))
+            stdoutlines = filter(self.filter_stdout, self.stdout.readlines())
+            if self.only_count:
+                stdoutlines = [str(len(stdoutlines))]
+            self.output = "".join(stdoutlines)
             self.err_output = p.stderr.read()
 
     def __call__(self, tar = None):
