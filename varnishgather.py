@@ -37,6 +37,7 @@ simplecommands = (('date',),
                   ('find', '/usr/local', '-name', 'varnish',),
                   ('grep', '-s', 'varnish', '/var/log/messages',),
                   ('grep', '-s', 'varnish', '/var/log/syslog',),
+                  ('iptables', '-n', '-L',),
                   )
 
 
