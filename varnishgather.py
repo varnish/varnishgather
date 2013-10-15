@@ -68,8 +68,8 @@ class LoggedCommand:
     def __init__(self, cmd, prefix=ID, filter_stdout=None):
         self.command = cmd
         self.has_run = False
-        self.stdout = None
-        self.stderr = None
+        self.output = None
+        self.err_output = None
         self.filter_stdout = filter_stdout
         self.logfile = None
         self.prefix = prefix
@@ -86,15 +86,21 @@ class LoggedCommand:
         self.logfile.write("Command: %s\n" % (" ".join(self.command), ))
         self.logfile.write("=" * 79)
         self.logfile.write("\nSTDOUT:\n")
-        self.logfile.write("".join(filter(self.filter_stdout, self.stdout.readlines())))
+        self.logfile.write(self.output)
         self.logfile.write("\nSTDERR:\n")
-        self.logfile.write(self.stderr.read())
+        self.logfile.write(self.err_output)
         return self.logfile
 
     def run(self):
-        p = Popen(self.command, stdout=PIPE, stderr=PIPE)
-        self.stdout = p.stdout
-        self.stderr = p.stderr
+        try:
+            p = Popen(self.command, stdout=PIPE, stderr=PIPE)
+        except OSError, e:
+            # program is not installed, cannot be found in $PATH, etc.
+            self.output = ""
+            self.err_output = str(e)
+        else:
+            self.output = "".join(filter(self.filter_stdout, p.stdout.readlines()))
+            self.err_output = p.stderr.read()
 
     def __call__(self, tar = None):
         self.run()
