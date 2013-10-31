@@ -1,5 +1,10 @@
 #!/bin/sh
-# varnish_gather - Gather debug information for varnish issues
+#
+# varnishgather - a data collection script for debugging Varnish issues.
+#
+# This script is non-invasive and can be run on production Varnish
+# servers with no ill effect.
+#
 # Copyright (C) 2010-2013 Varnish Software AS
 # Author: Kristian Lyngstol <kristian@varnish-cache.org>
 #
@@ -17,8 +22,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-#
-# Mostly harmless.
 
 export LC_ALL=C
 
