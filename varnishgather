@@ -336,6 +336,10 @@ mycat /proc/meminfo
 for pid in $(pidof varnishd); do
     runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 done
+# Pick up the basic memory offset the text segments are in.
+for pid in $(pidof varnishd); do
+    run "grep \"r-xp\" /proc/$pid/maps"
+done
 
 run find /usr/local -name varnish
 
