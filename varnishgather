@@ -305,7 +305,9 @@ run lsb_release -a
 run sysctl -a
 run varnishstat -V
 run dpkg -l \*varnish\*
+run dpkg --status varnish
 runpipe "rpm -qa" "grep varnish"
+run rpm -qi varnish
 run netstat -s
 run ip a
 run ip n
