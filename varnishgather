@@ -325,6 +325,8 @@ if [ -x "$NETSTAT" ]; then
 fi
 
 run iptables -n -L
+run iptables -t nat -n -L 
+run iptables -t mangle -n -L 
 
 for a in $(findvcls); do
 	mycat $a
