@@ -345,6 +345,7 @@ for pid in $(pidof varnishd); do
 done
 
 run find /usr/local -name varnish
+run find /var/lib/varnish -ls
 
 if [ -z "${VARNISHADMARG}" ]; then
 	banner "NO ADMINPORT SUPPLIED OR FOUND"
