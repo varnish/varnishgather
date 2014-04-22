@@ -304,6 +304,7 @@ run lsb_release -a
 run sysctl -a
 run varnishstat -V
 run getenforce
+run umask
 run dpkg -l \*varnish\*
 run dpkg --status varnish
 runpipe "rpm -qa" "grep varnish"
