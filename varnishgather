@@ -303,6 +303,7 @@ run vmstat 5 5
 run lsb_release -a
 run sysctl -a
 run varnishstat -V
+run getenforce
 run dpkg -l \*varnish\*
 run dpkg --status varnish
 runpipe "rpm -qa" "grep varnish"
