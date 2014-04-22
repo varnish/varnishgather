@@ -1,11 +1,11 @@
 Varnishgather
 =============
 
-Varnishgather is a simple script designed to gather as much relevant
+varnishgather is a simple script designed to gather as much relevant
 information as possible on a Varnish Cache setup.
 
 Primary platforms so far are Debian-based systems (including Ubuntu) and
-RHEL-based systems (including CentoS/other derivatives.).
+RHEL-based systems (including CentOS/other derivatives.).
 
 What does varnishgather gather
 ------------------------------
@@ -37,6 +37,7 @@ The data is intended to reveal everything and anything Varnish-related. Be
 it whether or not network problems is causing latency, if cookies is being
 treated safely, or if features like grace, streaming or ESI are set up
 correctly.
+
 
 Interpreting the data
 ---------------------
