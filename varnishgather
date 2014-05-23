@@ -322,6 +322,7 @@ run uname -a
 run mount
 run df -h
 run varnishstat -1 $STATCMD
+run ldd $(which varnishd)
 
 NETSTAT="/bin/netstat"
 if [ -x "$NETSTAT" ]; then
