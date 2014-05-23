@@ -139,12 +139,12 @@ vadmin()
 vadmin_getvcls()
 {
 	if [ ! -z "${VARNISHADMARG}" ]; then
-		varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}' 2>/dev/null
+		run varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}' 2>/dev/null
 	fi
 }
 
 findvcls() {
-	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
+	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl 2>/dev/null)
 
 	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
@@ -309,6 +309,10 @@ run dpkg -l \*varnish\*
 run dpkg --status varnish
 runpipe "rpm -qa" "grep varnish"
 run rpm -qi varnish
+run dpkg -l \*libjemalloc1\*
+run dpkg --status libjemalloc1
+runpipe "rpm -qa" "grep jemalloc"
+run rpm -qi jemalloc
 run netstat -s
 run ip a
 run ip n
