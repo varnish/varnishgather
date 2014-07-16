@@ -342,6 +342,7 @@ mycat /etc/init.d/varnish
 mycat /etc/default/varnish
 mycat /etc/sysconfig/varnish
 mycat /proc/$(pgrep -n varnishd)/limits
+mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 
 mycat /proc/meminfo
 for pid in $(pidof varnishd); do
