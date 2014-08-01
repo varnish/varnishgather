@@ -216,6 +216,8 @@ fi
 # Proper execution starts here
 ##############################
 
+info "Varnishgather version: ${VERSION}"
+info "Command line: $@"
 info "Working directory: ${DIR}"
 
 TEMP=`getopt n:T:S:h "$@"`
@@ -282,8 +284,6 @@ fi
 
 VARNISHADMARG="${SECRET} ${HOSTPORT}"
 
-info "Varnishgather version: ${VERSION}"
-info "Command line: $@"
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
 run varnishd -V
 run date
