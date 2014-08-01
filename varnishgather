@@ -47,7 +47,7 @@ mkdir -p ${DIR}
 cd ${DIR}
 
 cleanup () {
-    rm -rf "$TOPDIR"
+	rm -rf "$TOPDIR"
 }
 trap cleanup EXIT
 
@@ -57,11 +57,11 @@ trap cleanup EXIT
 # file name
 
 item_num() {
-    printf "%.2d" "$ITEM"
+	printf "%.2d" "$ITEM"
 }
 
 logname() {
-    echo "$@" | tr -c '[:alnum:]-' '[_*]' | sed 's/_*$//'
+	echo "$@" | tr -c '[:alnum:]-' '[_*]' | sed 's/_*$//'
 }
 
 log()
@@ -205,11 +205,11 @@ _EOF_
 }
 
 if [ "$(id -u)" -ne "0" ]; then
-    echo "#######################################################"
-    echo "Running as non-root, the results might not be complete."
-    echo "Please run again as root."
-    echo "#######################################################"
-    sleep 10
+	echo "#######################################################"
+	echo "Running as non-root, the results might not be complete."
+	echo "Please run again as root."
+	echo "#######################################################"
+	sleep 10
 fi
 
 ##############################
@@ -225,21 +225,21 @@ if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
 
 while true ; do
-        case "$1" in
-                -n) NAME=$2 ; shift 2;;
-                -T) HOSTPORT="-T $2"; shift 2;;
-		-S)
-			if [ -r $2 ]; then
-				SECRET="-S $2";
-			else
-				info "Secret file $2 not readable."
-				exit 1;
-			fi
-			shift 2;;
-                -h) usage; exit 0 ;;
-                --) shift; break;;
-                *) echo "internal error"; exit 1;;
-        esac
+	case "$1" in
+	-n) NAME=$2 ; shift 2;;
+	-T) HOSTPORT="-T $2"; shift 2;;
+	-S)
+		if [ -r $2 ]; then
+			SECRET="-S $2";
+		else
+			info "Secret file $2 not readable."
+			exit 1;
+		fi
+		shift 2;;
+	-h) usage; exit 0;;
+	--) shift; break;;
+	*) echo "internal error"; exit 1;;
+	esac
 done
 
 if [ -z "$HOSTPORT" ]; then
@@ -352,11 +352,11 @@ mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 
 mycat /proc/meminfo
 for pid in $(pidof varnishd); do
-    runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
+	runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 done
 # Pick up the basic memory offset the text segments are in.
 for pid in $(pidof varnishd); do
-    run "grep \"r-xp\" /proc/$pid/maps"
+	run "grep \"r-xp\" /proc/$pid/maps"
 done
 
 run find /usr/local -name varnish
