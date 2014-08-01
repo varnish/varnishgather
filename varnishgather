@@ -39,14 +39,15 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.0-140801"
+VERSION="1.1-140801"
 
 # Set up environment
 
 mkdir -p ${DIR}
 cd ${DIR}
 
-cleanup () {
+cleanup ()
+{
 	rm -rf "$TOPDIR"
 }
 trap cleanup EXIT
@@ -56,11 +57,13 @@ trap cleanup EXIT
 # Takes a string, translates it into something we can use as a log
 # file name
 
-item_num() {
+item_num()
+{
 	printf "%.2d" "$ITEM"
 }
 
-logname() {
+logname()
+{
 	echo "$@" | tr -c '[:alnum:]-' '[_*]' | sed 's/_*$//'
 }
 
@@ -93,7 +96,8 @@ run()
 	LOG="$OLDLOG"
 }
 
-runpipe_recurse() {
+runpipe_recurse()
+{
 	CMD="$1";
 	shift;
 	if [ "x$*" = "x" ]; then
@@ -145,7 +149,8 @@ vadmin_getvcls()
 	fi
 }
 
-findvcls() {
+findvcls()
+{
 	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl 2>/dev/null)
 
 	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
@@ -162,7 +167,8 @@ findvcls() {
 	echo $vcls
 }
 
-getarg() {
+getarg()
+{
 	ret=""
 	if ! which awk >/dev/null; then
 		info "No awk found. Automatic argument detection disabled."
@@ -183,7 +189,8 @@ getarg() {
 	echo ${ret}
 }
 
-usage() {
+usage()
+{
 	cat <<_EOF_
 Usage: $0 [-n name] [-T host:port] [-S secretfile] [-h]
 
@@ -298,7 +305,6 @@ done
 
 mycat /proc/cpuinfo
 mycat /proc/version
-
 runpipe "ps aux" "egrep (varnish|apache|mysql|nginx|httpd|stud|stunnel)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
