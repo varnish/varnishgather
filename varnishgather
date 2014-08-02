@@ -145,13 +145,13 @@ vadmin()
 vadmin_getvcls()
 {
 	if [ ! -z "${VARNISHADMARG}" ]; then
-		run varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}' 2>/dev/null
+		varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}'
 	fi
 }
 
 findvcls()
 {
-	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl 2>/dev/null)
+	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
 
 	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
