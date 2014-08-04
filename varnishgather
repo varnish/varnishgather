@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.003"
+VERSION="1.004"
 
 # Set up environment
 
@@ -175,7 +175,11 @@ getarg()
 			info "proc non-functional. Automatic argument detection disabled."
 			return
 		fi
-		tmpret=$(xargs -0 < /proc/${a}/cmdline | sed -n "s/.*$1[ ]*\([^ ]*\).*/\1/p")
+		tmpret=$(awk -v RS='\\x00' -v arg=$1 's == 1 {sec=$0};
+                   $0 == arg {s=1}
+                   $0 != arg {s=0}
+                   s == 0 && index($0,arg) == 1 {sec=substr($0,length(arg)+1)}
+                   END {print sec};' /proc/${a}/cmdline)
 		if [ x$ret != "x" ] && [ $ret != $tmpret ]; then
 			log "Weird argument mismatch: $ret vs $tmpret found"
 			info "(Using last found/listed)"
