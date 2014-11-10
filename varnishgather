@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.005"
+VERSION="1.006"
 
 # Set up environment
 
@@ -312,6 +312,7 @@ run uptime
 run free -m
 run vmstat 5 5
 run lsb_release -a
+mycat /etc/redhat-release
 run sysctl -a
 run varnishstat -V
 run getenforce
