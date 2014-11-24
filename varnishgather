@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.007"
+VERSION="1.008"
 
 # Set up environment
 
@@ -342,8 +342,12 @@ if [ -x "$NETSTAT" ]; then
 	run "${NETSTAT}" -np
 fi
 
-if  (lsmod | grep ip_tables > /dev/null); then 
+if  (lsmod | grep ip_tables > /dev/null); then
     run iptables-save
+fi
+
+if  (lsmod | grep ip6_tables > /dev/null); then
+    run ip6tables-save
 fi
 
 for a in $(findvcls); do
