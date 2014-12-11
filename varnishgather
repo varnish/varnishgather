@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.010"
+VERSION="1.011"
 UID="$(id -u)"
 
 # Set up environment
@@ -323,6 +323,7 @@ run dpkg -l \*varnish\*
 run dpkg --status varnish
 runpipe "rpm -qa" "grep varnish"
 run rpm -qi varnish
+run rpm -qi varnish-plus
 run dpkg -l \*libjemalloc1\*
 run dpkg --status libjemalloc1
 runpipe "rpm -qa" "grep jemalloc"
