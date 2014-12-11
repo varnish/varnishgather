@@ -39,7 +39,8 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.009"
+VERSION="1.010"
+UID="$(id -u)"
 
 # Set up environment
 
@@ -211,7 +212,7 @@ _EOF_
 	exit 1
 }
 
-if [ "$(id -u)" -ne "0" ]; then
+if [ "${UID}" -ne "0" ]; then
 	echo "#######################################################"
 	echo "Running as non-root, the results might not be complete."
 	echo "Please run again as root."
@@ -224,6 +225,7 @@ fi
 ##############################
 
 info "Varnishgather version: ${VERSION}"
+info "Invoked by: ${UID}"
 info "Command line: $@"
 info "Working directory: ${DIR}"
 
