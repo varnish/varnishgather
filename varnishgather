@@ -307,7 +307,7 @@ done
 
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|apache|mysql|nginx|httpd|stud|stunnel)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|stunnel)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -367,8 +367,22 @@ mycat /etc/sysconfig/varnish-agent
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
-
 mycat /proc/meminfo
+mycat /etc/sysconfig/vha-agent
+mycat /etc/default/vha-agent
+mycat /etc/init.d/vha-agent
+mycat /etc/sysconfig/varnish-agent
+mycat /etc/default/varnish-agent
+mycat /etc/init.d/varnish-agent
+mycat /etc/init.d/vac
+mycat /opt/vac/etc/defaults
+mycat /etc/sysconfig/vstatdprobe
+mycat /etc/default/vstatdprobe
+mycat /etc/init.d/vstatdprobe
+mycat /etc/sysconfig/vstatd
+mycat /etc/default/vstatd
+mycat /etc/init.d/vstatd
+
 for pid in $(pidof varnishd); do
 	runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 done
