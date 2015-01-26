@@ -368,12 +368,19 @@ mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
 mycat /proc/meminfo
+
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
+run rpm -qi vha-agent
+run dpkg -l \*vha-agent\*
+
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
+run rpm -qi varnish-agent
+run dpkg -l \*varnish-agent\*
+
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /etc/sysconfig/vstatdprobe
