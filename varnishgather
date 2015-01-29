@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.013"
+VERSION="1.014"
 USERID="$(id -u)"
 
 # Set up environment
@@ -383,6 +383,9 @@ run dpkg -l \*varnish-agent\*
 
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
+mycat /var/opt/vac/log/vac-stderr.log
+mycat /var/opt/vac/log/vac.log
+
 mycat /etc/sysconfig/vstatdprobe
 mycat /etc/default/vstatdprobe
 mycat /etc/init.d/vstatdprobe
