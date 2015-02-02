@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.014"
+VERSION="1.015"
 USERID="$(id -u)"
 
 # Set up environment
@@ -301,7 +301,7 @@ mycat /var/log/dmesg
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run grep varnish "$a"
+		run egrep "(varnish|vha-agent)" "$a"
 	fi
 done
 
