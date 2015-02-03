@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.016"
+VERSION="1.017"
 USERID="$(id -u)"
 
 # Set up environment
@@ -392,6 +392,8 @@ mycat /etc/init.d/vstatdprobe
 mycat /etc/sysconfig/vstatd
 mycat /etc/default/vstatd
 mycat /etc/init.d/vstatd
+run lsof -i :5558
+
 mycat /etc/hosts
 
 for pid in $(pidof varnishd); do
