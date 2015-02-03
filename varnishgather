@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.015"
+VERSION="1.016"
 USERID="$(id -u)"
 
 # Set up environment
@@ -392,6 +392,7 @@ mycat /etc/init.d/vstatdprobe
 mycat /etc/sysconfig/vstatd
 mycat /etc/default/vstatd
 mycat /etc/init.d/vstatd
+mycat /etc/hosts
 
 for pid in $(pidof varnishd); do
 	runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
