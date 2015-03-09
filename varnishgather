@@ -5,7 +5,7 @@
 # This script is non-invasive and can be run on production Varnish
 # servers with no ill effect.
 #
-# Copyright (C) 2010-2014 Varnish Software AS <support@varnish-software.com>
+# Copyright (C) 2010-2015 Varnish Software AS <support@varnish-software.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.017"
+VERSION="1.018"
 USERID="$(id -u)"
 
 # Set up environment
@@ -190,6 +190,27 @@ getarg()
 	echo ${ret}
 }
 
+check_tools()
+{
+	missing=
+	for command in varnishadm varnishd varnishlog varnishstat; do
+		if [ ! $(which $command) ]; then
+			missing="$missing$command "
+		fi
+	done
+	if [ -n "$missing" ]; then
+		echo "#######################################################"
+		echo "Some binaries are missing from PATH, the results might"
+		echo "not be complete:"
+		echo ""
+		echo "    $missing"
+		echo ""
+		echo "Please amend your PATH and run again."
+		echo "#######################################################"
+		sleep 10
+	fi
+}
+
 usage()
 {
 	cat <<_EOF_
@@ -219,6 +240,8 @@ if [ "${USERID}" -ne "0" ]; then
 	echo "#######################################################"
 	sleep 10
 fi
+
+check_tools
 
 ##############################
 # Proper execution starts here
