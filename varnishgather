@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.018"
+VERSION="1.019"
 USERID="$(id -u)"
 
 # Set up environment
@@ -50,8 +50,9 @@ cd ${DIR}
 cleanup ()
 {
 	rm -rf "$TOPDIR"
+	exit 1
 }
-trap cleanup EXIT
+trap cleanup EXIT 2
 
 # Helpers
 
