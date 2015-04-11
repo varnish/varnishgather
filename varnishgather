@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.20"
+VERSION="1.21"
 USERID="$(id -u)"
 
 # Set up environment
@@ -331,7 +331,7 @@ done
 
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|stunnel)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|stunnel|api-engine)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -452,6 +452,35 @@ vadmin debug.health
 vadmin panic.show
 
 run varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
+
+if [ -d "/etc/api-engine" ]; then
+	# Packages
+	runpipe "rpm -qa" "grep api-engine"
+	run egrep api-engine "/var/log/yum.log"
+
+	# Permissions
+	run find /var/lib/api-engine -ls
+	run find /etc/api-engine -ls
+	run find /var/log/api-engine -ls
+
+	# Log files
+	mycat /var/log/api-engine/api-engine-rest.log
+	mycat /var/log/api-engine/api-engine-rest-uwsgi.log
+	mycat /var/log/api-engine/api-engine-sync.log
+	mycat /var/log/api-engine/api-engine-syncreload.log
+
+	# Configuration files
+	mycat /etc/api-engine/api-engine-rest.cfg
+	mycat /etc/api-engine/api-engine-rest-uwsgi.ini
+	mycat /etc/api-engine/api-engine-syncutil.cfg
+	run egrep -v ^password "/etc/api-engine/api-engine-sync.cfg"
+
+	# Generated VCL
+	mycat /var/lib/api-engine/sync/vcl/current.vcl
+	find /var/lib/api-engine/sync/vcl/*.vcl -type f | while read f; do
+		mycat "$f"
+	done
+fi
 
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
