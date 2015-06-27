@@ -352,12 +352,6 @@ run dpkg -l \*libjemalloc1\*
 run dpkg --status libjemalloc1
 runpipe "rpm -qa" "grep jemalloc"
 run rpm -qi jemalloc
-run dpkg -l \*vstatd\*
-run dpkg --status vstatd-probe
-run dpkg --status vstatd
-runpipe "rpm -qa" "grep vstatd"
-run rpm -qi vstatd-probe
-run rpm -qi vstatd
 run netstat -s
 run ip a
 run ip n
