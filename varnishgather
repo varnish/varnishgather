@@ -331,7 +331,7 @@ done
 
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|stunnel|api-engine)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
