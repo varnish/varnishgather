@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.22"
+VERSION="1.23"
 USERID="$(id -u)"
 
 # Set up environment
@@ -388,6 +388,8 @@ mycat /proc/$(pgrep -n varnishd)/limits
 mycat /etc/init.d/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/sysconfig/varnish-agent
+mycat /var/lib/varnish-agent/agent.param
+mycat /var/lib/varnish-agent/boot.vcl
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
