@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.23"
+VERSION="1.24"
 USERID="$(id -u)"
 
 # Set up environment
@@ -400,6 +400,8 @@ mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
 run rpm -qi vha-agent
 run dpkg -l \*vha-agent\*
+run rpm -qi varnish-plus-ha
+run dpkg -l \*varnish-plus-ha\*
 
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
