@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.24"
+VERSION="1.25"
 USERID="$(id -u)"
 
 # Set up environment
@@ -384,6 +384,7 @@ done
 mycat /etc/init.d/varnish
 mycat /etc/default/varnish
 mycat /etc/sysconfig/varnish
+mycat /etc/varnish/varnish.params
 mycat /proc/$(pgrep -n varnishd)/limits
 mycat /etc/init.d/varnish-agent
 mycat /etc/default/varnish-agent
@@ -408,6 +409,8 @@ mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
 run rpm -qi varnish-agent
 run dpkg -l \*varnish-agent\*
+
+mycat /etc/hitch/hitch.cfg
 
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
