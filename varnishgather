@@ -61,7 +61,7 @@ trap cleanup EXIT 2
 
 item_num()
 {
-	printf "%.2d" "$ITEM"
+	printf "%.3d" "$ITEM"
 }
 
 logname()
@@ -167,6 +167,14 @@ findvcls()
 	done | sort | uniq)
 
 	echo $vcls
+}
+
+checkversion()
+{
+	run dpkg -l \*${1}\*
+	run dpkg --status ${1}
+	runpipe "rpm -qa" "grep ${1}"
+	run rpm -qi ${1}
 }
 
 getarg()
@@ -343,15 +351,12 @@ run sysctl -a
 run varnishstat -V
 run getenforce
 run umask
-run dpkg -l \*varnish\*
-run dpkg --status varnish
-runpipe "rpm -qa" "grep varnish"
-run rpm -qi varnish
-run rpm -qi varnish-plus
-run dpkg -l \*libjemalloc1\*
-run dpkg --status libjemalloc1
-runpipe "rpm -qa" "grep jemalloc"
-run rpm -qi jemalloc
+checkversion varnish
+checkversion varnish-plus
+checkversion libjemalloc1
+checkversion gcc
+checkversion jemalloc
+
 run netstat -s
 run ip a
 run ip n
@@ -399,16 +404,14 @@ mycat /proc/meminfo
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
-run rpm -qi vha-agent
-run dpkg -l \*vha-agent\*
-run rpm -qi varnish-plus-ha
-run dpkg -l \*varnish-plus-ha\*
+checkversion vha-agent
+checkversion varnish-plus-ha
 
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
-run rpm -qi varnish-agent
-run dpkg -l \*varnish-agent\*
+checkversion varnish-agent
+checkversion hitch
 
 mycat /etc/hitch/hitch.cfg
 
@@ -462,7 +465,7 @@ run varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
-	runpipe "rpm -qa" "grep api-engine"
+	checkversion api-engine
 	run egrep api-engine "/var/log/yum.log"
 
 	# Permissions
