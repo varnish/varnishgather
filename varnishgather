@@ -212,6 +212,18 @@ check_tools()
 	fi
 }
 
+check_version()
+{
+	if [ $(which dpkg) ]; then
+		run dpkg -l \*$1\*
+		run dpkg --status $1
+	fi
+	if [ $(which rpm) ]; then
+		runpipe "rpm -qa" "grep $1"
+		run rpm -qi $1
+	fi
+}
+
 usage()
 {
 	cat <<_EOF_
@@ -343,18 +355,12 @@ run sysctl -a
 run varnishstat -V
 run getenforce
 run umask
-run dpkg -l \*varnish\*
-run dpkg --status varnish
-runpipe "rpm -qa" "grep varnish"
-run rpm -qi varnish
-run rpm -qi varnish-plus
-run dpkg -l \*libjemalloc1\*
-run dpkg --status libjemalloc1
-runpipe "rpm -qa" "grep jemalloc"
-run rpm -qi jemalloc
-run dpkg -l \*libpcre3\*
-runpipe "rpm -qa" "grep pcre"
-run rpm -qi pcre
+check_version varnish
+check_version varnish-plus
+check_version libjemalloc1
+check_version jemalloc
+check_version libpcre3
+check_version pcre
 run netstat -s
 run ip a
 run ip n
@@ -402,16 +408,13 @@ mycat /proc/meminfo
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
-run rpm -qi vha-agent
-run dpkg -l \*vha-agent\*
-run rpm -qi varnish-plus-ha
-run dpkg -l \*varnish-plus-ha\*
+check_version vha-agent
+check_version varnish-plus-ha
 
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
-run rpm -qi varnish-agent
-run dpkg -l \*varnish-agent\*
+check_version varnish-agent
 
 mycat /etc/hitch/hitch.cfg
 
