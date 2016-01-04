@@ -432,7 +432,7 @@ for pid in $(pidof varnishd); do
 done
 # Pick up the basic memory offset the text segments are in.
 for pid in $(pidof varnishd); do
-	run "grep \"r-xp\" /proc/$pid/maps"
+	run grep "r-xp" /proc/$pid/maps
 done
 
 run find /usr/local -name varnish
