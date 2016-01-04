@@ -352,6 +352,9 @@ run dpkg -l \*libjemalloc1\*
 run dpkg --status libjemalloc1
 runpipe "rpm -qa" "grep jemalloc"
 run rpm -qi jemalloc
+run dpkg -l \*libpcre3\*
+runpipe "rpm -qa" "grep pcre"
+run rpm -qi pcre
 run netstat -s
 run ip a
 run ip n
