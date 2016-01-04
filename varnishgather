@@ -80,22 +80,38 @@ info()
 	log "$@"
 }
 
+incr()
+{
+	ITEM=$(( $ITEM + 1 ))
+}
+
+taskecho()
+{
+	echo "Task: ${ITEM}: $*"
+}
 banner()
 {
 	log "--------------------------------"
 	log "Item $ITEM: $@"
 	log "--------------------------------"
-	ITEM=$(( $ITEM + 1 ))
-	echo "Task: ${ITEM}: $*"
+	taskecho $@
 }
 
 run()
 {
+	incr
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner "$@"
 	("$@") >> ${LOG} 2>&1
 	LOG="$OLDLOG"
+}
+
+pack_vcls()
+{
+	incr
+	taskecho "Compressing VCLs"
+	tar cf ${DIR}/$(item_num)_vcls.tar $(findvcls) >> ${LOG} 2>&1
 }
 
 runpipe_recurse()
@@ -123,6 +139,7 @@ pipeprint()
 }
 runpipe()
 {
+	incr
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner $(pipeprint "$@")
@@ -153,9 +170,10 @@ vadmin_getvcls()
 
 findvcls()
 {
-	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
+	base_vcls=$(find /etc/varnish -name '*vcl')
+	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' ${base_vcls})
 
-	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
+	vcls=$(for file in $include_vcls ${base_vcls}; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
 		if [ -z "$is_absolute" ]; then
 			file="/etc/varnish/$file"
@@ -243,7 +261,6 @@ if [ "${USERID}" -ne "0" ]; then
 fi
 
 check_tools
-
 ##############################
 # Proper execution starts here
 ##############################
@@ -383,6 +400,8 @@ fi
 for a in $(findvcls); do
 	mycat $a
 done
+
+pack_vcls
 
 mycat /etc/init.d/varnish
 mycat /etc/default/varnish
