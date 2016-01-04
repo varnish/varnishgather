@@ -5,7 +5,7 @@
 # This script is non-invasive and can be run on production Varnish
 # servers with no ill effect.
 #
-# Copyright (C) 2010-2015 Varnish Software AS <support@varnish-software.com>
+# Copyright (C) 2010-2016 Varnish Software AS <support@varnish-software.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
