@@ -363,7 +363,7 @@ run lsb_release -a
 mycat /etc/redhat-release
 run sysctl -a
 run varnishstat -V
-run getenforce
+run_if getenforce
 run umask
 show_package varnish
 list_packages varnish
