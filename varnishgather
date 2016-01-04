@@ -361,6 +361,7 @@ check_version libjemalloc1
 check_version jemalloc
 check_version libpcre3
 check_version pcre
+check_version gcc
 run netstat -s
 run ip a
 run ip n
@@ -416,12 +417,15 @@ mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
 check_version varnish-agent
 
-mycat /etc/hitch/hitch.cfg
+mycat /etc/hitch/hitch.conf
+check_version hitch
+check_version varnish-plus-addon-ssl
 
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
+check_version vac
 
 mycat /etc/sysconfig/vstatdprobe
 mycat /etc/default/vstatdprobe
