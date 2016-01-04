@@ -98,6 +98,13 @@ run()
 	LOG="$OLDLOG"
 }
 
+run_if()
+{
+	if [ $(which $1) ]; then
+		run "$@"
+	fi
+}
+
 runpipe_recurse()
 {
 	CMD="$1";
@@ -121,6 +128,7 @@ pipeprint()
 
 
 }
+
 runpipe()
 {
 	OLDLOG="$LOG"
@@ -212,16 +220,18 @@ check_tools()
 	fi
 }
 
-check_version()
+list_packages()
 {
-	if [ $(which dpkg) ]; then
-		run dpkg -l \*$1\*
-		run dpkg --status $1
-	fi
+	run_if dpkg --list \*$1\*
 	if [ $(which rpm) ]; then
 		runpipe "rpm -qa" "grep $1"
-		run rpm -qi $1
 	fi
+}
+
+show_package()
+{
+	run_if dpkg --status $1
+	run_if rpm -qi $1
 }
 
 usage()
@@ -355,13 +365,15 @@ run sysctl -a
 run varnishstat -V
 run getenforce
 run umask
-check_version varnish
-check_version varnish-plus
-check_version libjemalloc1
-check_version jemalloc
-check_version libpcre3
-check_version pcre
-check_version gcc
+show_package varnish
+list_packages varnish
+show_package varnish-plus
+list_packages varnish-plus
+run_if dpkg --status libjemalloc1
+run_if rpm -qi jemalloc
+run_if dpkg --status libpcre3
+run_if rpm -qi pcre
+show_package gcc
 run netstat -s
 run ip a
 run ip n
@@ -409,23 +421,23 @@ mycat /proc/meminfo
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
-check_version vha-agent
-check_version varnish-plus-ha
+show_package vha-agent
+show_package varnish-plus-ha
 
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
-check_version varnish-agent
+show_package varnish-agent
 
 mycat /etc/hitch/hitch.conf
-check_version hitch
-check_version varnish-plus-addon-ssl
+show_package hitch
+show_package varnish-plus-addon-ssl
 
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
-check_version vac
+show_package vac
 
 mycat /etc/sysconfig/vstatdprobe
 mycat /etc/default/vstatdprobe
