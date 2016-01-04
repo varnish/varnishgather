@@ -140,7 +140,7 @@ mycat()
 vadmin()
 {
 	if [ ! -z "${VARNISHADMARG}" ]; then
-		run varnishadm ${VARNISHADMARG} $* 2>/dev/null
+		run varnishadm ${VARNISHADMARG} -- $* 2>/dev/null
 	fi
 }
 
@@ -459,6 +459,7 @@ vadmin param.show
 vadmin purge.list
 vadmin ban.list
 vadmin debug.health
+vadmin backend.list -p
 vadmin panic.show
 
 run varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
