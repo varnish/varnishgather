@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.31"
+VERSION="1.32"
 USERID="$(id -u)"
 
 # Set up environment
