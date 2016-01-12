@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.29"
+VERSION="1.30"
 USERID="$(id -u)"
 
 # Set up environment
@@ -105,6 +105,12 @@ run_if()
 	fi
 }
 
+pack_vcls()
+{
+	taskecho "Compressing VCLs"
+	tar cf ${DIR}/$(item_num)_vcls.tar $(findvcls) >> ${LOG} 2>&1
+}
+
 runpipe_recurse()
 {
 	CMD="$1";
@@ -161,9 +167,10 @@ vadmin_getvcls()
 
 findvcls()
 {
-	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' /etc/varnish/*.vcl)
+	base_vcls=$(find /etc/varnish -name '*vcl')
+	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' ${base_vcls})
 
-	vcls=$(for file in $include_vcls /etc/varnish/*.vcl; do
+	vcls=$(for file in $include_vcls ${base_vcls}; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
 		if [ -z "$is_absolute" ]; then
 			file="/etc/varnish/$file"
@@ -402,6 +409,8 @@ fi
 for a in $(findvcls); do
 	mycat $a
 done
+
+pack_vcls
 
 mycat /etc/init.d/varnish
 mycat /etc/default/varnish
