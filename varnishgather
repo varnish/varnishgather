@@ -503,7 +503,7 @@ vadmin debug.health
 vadmin backend.list -p
 vadmin panic.show
 
-run varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
+run timeout -s TERM 120 varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
