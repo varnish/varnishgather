@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.30"
+VERSION="1.31"
 USERID="$(id -u)"
 
 # Set up environment
@@ -80,17 +80,27 @@ info()
 	log "$@"
 }
 
+incr()
+{
+	ITEM=$(( $ITEM + 1 ))
+}
+
+taskecho()
+{
+	echo "Task: ${ITEM}: $*"
+}
+
 banner()
 {
 	log "--------------------------------"
 	log "Item $ITEM: $@"
 	log "--------------------------------"
-	ITEM=$(( $ITEM + 1 ))
-	echo "Task: ${ITEM}: $*"
+	taskecho $@
 }
 
 run()
 {
+	incr
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner "$@"
@@ -107,6 +117,7 @@ run_if()
 
 pack_vcls()
 {
+	incr
 	taskecho "Compressing VCLs"
 	tar cf ${DIR}/$(item_num)_vcls.tar $(findvcls) >> ${LOG} 2>&1
 }
@@ -137,6 +148,7 @@ pipeprint()
 
 runpipe()
 {
+	incr
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner $(pipeprint "$@")
