@@ -388,6 +388,7 @@ show_package varnish
 list_packages varnish
 show_package varnish-plus
 list_packages varnish-plus
+list_packages vmod
 run_if dpkg --status libjemalloc1
 run_if rpm -qi jemalloc
 run_if dpkg --status libpcre3
