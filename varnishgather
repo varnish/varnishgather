@@ -173,7 +173,7 @@ vadmin()
 vadmin_getvcls()
 {
 	if [ ! -z "${VARNISHADMARG}" ]; then
-		varnishadm ${VARNISHADMARG} vcl.list | awk '{print $3}'
+		varnishadm ${VARNISHADMARG} vcl.list 2>/dev/null | awk '{print $3}'
 	fi
 }
 
