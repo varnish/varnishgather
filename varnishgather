@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.37"
+VERSION="1.38"
 USERID="$(id -u)"
 
 # Set up environment
@@ -519,13 +519,13 @@ fi
 
 vadmin param.show
 case "$VARNISH" in
-*-2.[0-9]*)
+*-2.*)
 	vadmin purge.list;;
 *)
 	vadmin ban.list;;
 esac
 case "$VARNISH" in
-*-3.0.*|*-4.0.*)
+*-[23].*|*-4.0.*)
 	vadmin debug.health;;
 *)
 	vadmin backend.list -p;;
@@ -533,7 +533,7 @@ esac
 vadmin panic.show
 
 case "$VARNISH" in
-*-3.0.*)
+*-[23].*)
 	args="-k 20000";;
 *-4.0.[01]*)
 	args="-g raw";;
