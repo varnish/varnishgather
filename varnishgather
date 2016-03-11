@@ -29,6 +29,7 @@ export LC_ALL=C
 
 HOSTPORT=""
 NAME=""
+VARNISH=""
 VARNISHADMARG=""
 SECRET=""
 STATCMD=""
@@ -39,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.35"
+VERSION="1.36"
 USERID="$(id -u)"
 
 # Set up environment
@@ -357,6 +358,7 @@ if [ ! -z "$NAME" ]; then
 fi
 
 VARNISHADMARG="${SECRET} ${HOSTPORT}"
+VARNISH=$(varnishd -V 2>&1)
 
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
 run varnishd -V
@@ -499,16 +501,24 @@ if [ -n "$vcls" ]; then
 fi
 
 vadmin param.show
-vadmin purge.list
-vadmin ban.list
-vadmin debug.health
-vadmin backend.list -p
+case "$VARNISH" in
+*-2.[0-9]*)
+	vadmin purge.list;;
+*)
+	vadmin ban.list;;
+esac
+case "$VARNISH" in
+*-3.0.*|*-4.0.*)
+	vadmin debug.health;;
+*)
+	vadmin backend.list -p;;
+esac
 vadmin panic.show
 
-case $(varnishd -V 2>&1) in
-*-3\.0\.*)
+case "$VARNISH" in
+*-3.0.*)
 	args="-k 20000";;
-*-4\.0\.[01]*)
+*-4.0.[01]*)
 	args="-g raw";;
 *)
 	args="-g raw -k 20000";;
