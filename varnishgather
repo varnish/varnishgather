@@ -39,7 +39,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.33"
+VERSION="1.34"
 USERID="$(id -u)"
 
 # Set up environment
@@ -505,7 +505,15 @@ vadmin debug.health
 vadmin backend.list -p
 vadmin panic.show
 
-run timeout -s TERM 120 varnishlog -d -k 20000 -w "${DIR}/varnishlog.raw" $STATCMD
+case $(varnishd -V 2>&1) in
+*-3\.0\.*)
+	args="-k 20000";;
+*-4\.0\.[01]*)
+	args="-g raw";;
+*)
+	args="-g raw -k 20000";;
+esac
+run timeout -s TERM 120 varnishlog -d "${args}" -w "${DIR}/varnishlog.raw" $STATCMD
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
