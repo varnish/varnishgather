@@ -102,18 +102,14 @@ banner()
 run()
 {
 	incr
+
+	which "$1" >/dev/null 2>&1 || return 0
+
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner "$@"
 	("$@") >> ${LOG} 2>&1
 	LOG="$OLDLOG"
-}
-
-run_if()
-{
-	if [ $(which $1) ]; then
-		run "$@"
-	fi
 }
 
 pack_vcls()
@@ -242,7 +238,7 @@ check_tools()
 
 list_packages()
 {
-	run_if dpkg --list \*$1\*
+	run dpkg --list \*$1\*
 	if [ $(which rpm) ]; then
 		runpipe "rpm -qa" "grep $1"
 	fi
@@ -250,8 +246,8 @@ list_packages()
 
 show_package()
 {
-	run_if dpkg --status $1
-	run_if rpm -qi $1
+	run dpkg --status $1
+	run rpm -qi $1
 }
 
 usage()
@@ -384,17 +380,17 @@ run lsb_release -a
 mycat /etc/redhat-release
 run sysctl -a
 run varnishstat -V
-run_if getenforce
+run getenforce
 run umask
 show_package varnish
 list_packages varnish
 show_package varnish-plus
 list_packages varnish-plus
 list_packages vmod
-run_if dpkg --status libjemalloc1
-run_if rpm -qi jemalloc
-run_if dpkg --status libpcre3
-run_if rpm -qi pcre
+run dpkg --status libjemalloc1
+run rpm -qi jemalloc
+run dpkg --status libpcre3
+run rpm -qi pcre
 show_package gcc
 run netstat -s
 run ip a
