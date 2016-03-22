@@ -365,15 +365,6 @@ run varnishd -V
 run date
 run dmesg
 mycat /var/log/dmesg
-
-for a in /var/log/messages /var/log/syslog; do
-	if [ -r "$a" ]; then
-		run egrep "(varnish|vha-agent|hitch)" "$a"
-	else
-		incr
-	fi
-done
-
 mycat /proc/cpuinfo
 mycat /proc/version
 runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine)"
@@ -412,18 +403,6 @@ run ldd $(which varnishd)
 NETSTAT="/bin/netstat"
 run "${NETSTAT}" -nlpt
 run "${NETSTAT}" -np
-
-if  (lsmod | grep ip_tables > /dev/null); then
-	run iptables-save
-fi
-
-if  (lsmod | grep ip6_tables > /dev/null); then
-	run ip6tables-save
-fi
-
-for a in $(findvcls); do
-	mycat $a
-done
 
 pack_vcls
 
@@ -475,16 +454,40 @@ run lsof -i :5558
 
 mycat /etc/hosts
 
+run find /usr/local -name varnish
+run find /var/lib/varnish -ls
+
+for a in /var/log/messages /var/log/syslog; do
+	if [ -r "$a" ]; then
+		run egrep "(varnish|vha-agent|hitch)" "$a"
+	else
+		incr
+	fi
+done
+
+# ip tables
+if  (lsmod | grep ip_tables > /dev/null); then
+	run iptables-save
+fi
+
+if  (lsmod | grep ip6_tables > /dev/null); then
+	run ip6tables-save
+fi
+
+# VCLs
+for a in $(findvcls); do
+	mycat $a
+done
+
+# maps
 for pid in $(pidof varnishd); do
 	runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 done
+
 # Pick up the basic memory offset the text segments are in.
 for pid in $(pidof varnishd); do
 	run grep "r-xp" /proc/$pid/maps
 done
-
-run find /usr/local -name varnish
-run find /var/lib/varnish -ls
 
 if [ -z "${VARNISHADMARG}" ]; then
 	banner "NO ADMINPORT SUPPLIED OR FOUND"
