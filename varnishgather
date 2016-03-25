@@ -62,7 +62,7 @@ trap cleanup EXIT 2
 
 item_num()
 {
-	printf "%.2d" "$ITEM"
+	printf "%.3d" "$ITEM"
 }
 
 logname()
