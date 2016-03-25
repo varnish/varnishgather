@@ -240,9 +240,9 @@ check_tools()
 
 list_packages()
 {
-	run dpkg --list \*$1\*
+	runpipe "dpkg --list \*$1\*" sort
 	if [ $(which rpm) ]; then
-		runpipe "rpm -qa" "grep $1"
+		runpipe "rpm -qa" "grep $1" sort
 	else
 		incr
 	fi
