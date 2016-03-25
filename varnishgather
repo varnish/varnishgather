@@ -414,11 +414,11 @@ if [ -x "$NETSTAT" ]; then
 fi
 
 if  (lsmod | grep ip_tables > /dev/null); then
-    run iptables-save
+	run iptables-save
 fi
 
 if  (lsmod | grep ip6_tables > /dev/null); then
-    run ip6tables-save
+	run ip6tables-save
 fi
 
 for a in $(findvcls); do
