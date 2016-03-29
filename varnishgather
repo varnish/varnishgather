@@ -368,7 +368,7 @@ mycat /var/log/dmesg
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(varnish|vha-agent)" "$a"
+		run egrep "(varnish|vha-agent|hitch)" "$a"
 	fi
 done
 
