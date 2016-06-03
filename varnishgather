@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.38"
+VERSION="1.39"
 USERID="$(id -u)"
 
 # Set up environment
@@ -534,11 +534,9 @@ vadmin panic.show
 
 case "$VARNISH" in
 *-[23].*)
-	args="-k 20000";;
-*-4.0.[01]*)
-	args="-g raw";;
+	args=;;
 *)
-	args="-g raw -k 20000";;
+	args="-g raw";;
 esac
 run timeout -s TERM 120 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 
