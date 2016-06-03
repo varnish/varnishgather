@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.41"
+VERSION="1.42"
 USERID="$(id -u)"
 
 # Set up environment
@@ -546,7 +546,7 @@ case "$VARNISH" in
 *)
 	args="-g raw";;
 esac
-run timeout -s TERM 120 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
+run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
