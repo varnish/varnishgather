@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.40"
+VERSION="1.41"
 USERID="$(id -u)"
 
 # Set up environment
@@ -178,7 +178,8 @@ vadmin_getvcls()
 
 findvcls()
 {
-	base_vcls=$(find /etc/varnish -name '*vcl')
+	base_vcls=$(find /etc/varnish -name '*vcl' 2>/dev/null)
+	[ -z "${base_vcls}" ] && return
 	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' ${base_vcls})
 
 	vcls=$(for file in $include_vcls ${base_vcls}; do
