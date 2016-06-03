@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.42"
+VERSION="1.43"
 USERID="$(id -u)"
 
 # Set up environment
@@ -77,7 +77,13 @@ log()
 
 info()
 {
-	echo 1>&2 "$@"
+	echo 1>&2 "Info: $@"
+	log "$@"
+}
+
+warn()
+{
+	echo 1>&2 "Warning: $@"
 	log "$@"
 }
 
@@ -337,7 +343,7 @@ done
 if [ -z "$HOSTPORT" ]; then
 	HOSTPORT=$(getarg -T)
 	if [ -z "$HOSTPORT" ]; then
-		info "Without a hostname:port for the admin interface, this script is less useful"
+		warn "Without a hostname:port for the admin interface, this script is less useful"
 	else
 		info "Found hostport(-T argument): ${HOSTPORT}"
 		HOSTPORT="-T ${HOSTPORT}"
@@ -351,7 +357,7 @@ if [ -z "$SECRET" ]; then
 			info "Found secretfile(-S argument) ${sec} and it's readable. Using it."
 			SECRET="-S ${sec}"
 		elif [ -f /etc/varnish/secret ]; then
-			info "Found secretfile(-S argument) ${sec} but it's not readable"
+			warn "Found secretfile(-S argument) ${sec} but it's not readable"
 		fi
 	else
 		info "Didn't find any -S argument"
