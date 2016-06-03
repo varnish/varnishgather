@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.39"
+VERSION="1.40"
 USERID="$(id -u)"
 
 # Set up environment
@@ -510,10 +510,17 @@ fi
 # vadmin() tests for VARNISHADMARG as necessary
 
 vadmin vcl.list
+
 vcls="$(vadmin_getvcls)"
 if [ -n "$vcls" ]; then
+	case "$VARNISH" in
+	*-4.0.[23]|*-4.1.*)
+		args="-v";;
+	*)
+		args=;;
+	esac
 	for vcl in $vcls; do
-		vadmin vcl.show "$vcl"
+		vadmin vcl.show ${args} "$vcl"
 	done
 fi
 
