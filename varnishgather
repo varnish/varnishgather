@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.43"
+VERSION="1.44"
 USERID="$(id -u)"
 
 # Set up environment
@@ -247,8 +247,9 @@ check_tools()
 
 list_packages()
 {
-	runpipe "dpkg --list \*$1\*" sort
-	if [ $(which rpm) ]; then
+	if [ $(which dpkg) ]; then
+		runpipe "dpkg --list \*$1\*" sort
+	elif [ $(which rpm) ]; then
 		runpipe "rpm -qa" "grep $1" sort
 	else
 		incr
