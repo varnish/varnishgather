@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.44"
+VERSION="1.45"
 USERID="$(id -u)"
 
 # Set up environment
@@ -248,7 +248,7 @@ check_tools()
 list_packages()
 {
 	if [ $(which dpkg) ]; then
-		runpipe "dpkg --list \*$1\*" sort
+		runpipe "dpkg --list" "grep $1" sort
 	elif [ $(which rpm) ]; then
 		runpipe "rpm -qa" "grep $1" sort
 	else
@@ -401,11 +401,10 @@ run sysctl -a
 run varnishstat -V
 run getenforce
 run umask
-show_package varnish
 list_packages varnish
-show_package varnish-plus
-list_packages varnish-plus
 list_packages vmod
+show_package varnish
+show_package varnish-plus
 run dpkg --status libjemalloc1
 run rpm -qi jemalloc
 run dpkg --status libpcre3
@@ -473,6 +472,8 @@ mycat /etc/sysconfig/vstatd
 mycat /etc/default/vstatd
 mycat /etc/init.d/vstatd
 run lsof -i :5558
+show_package varnish-custom-statistics
+show_package varnish-custom-statistics-probe
 
 mycat /etc/hosts
 
