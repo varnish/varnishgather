@@ -276,6 +276,28 @@ show_limits()
 	LOG="$OLDLOG"
 }
 
+blockdev_cat()
+{
+	echo -n >>${LOG} "$1:"
+	cat "$1" >> ${LOG} 2>&1
+}
+
+blockdev()
+{
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_blockdev_info_$(logname "$1")"
+	banner "blockdev info $1"
+	blockdev_cat "$1/device/model"
+	blockdev_cat "$1/queue/logical_block_size"
+	blockdev_cat "$1/queue/physical_block_size"
+	blockdev_cat "$1/queue/read_ahead_kb"
+	blockdev_cat "$1/queue/minimum_io_size"
+	blockdev_cat "$1/queue/optimal_io_size"
+	LOG="$OLDLOG"
+}
+
 usage()
 {
 	cat <<_EOF_
@@ -479,6 +501,10 @@ mycat /etc/hosts
 
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
+
+for a in /sys/block/*; do
+	blockdev "$a"
+done
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
