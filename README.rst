@@ -7,6 +7,15 @@ information as possible on a Varnish Cache setup.
 Primary platforms so far are Debian-based systems (including Ubuntu) and
 RHEL-based systems (including CentOS/other derivatives.).
 
+Usage
+------
+::
+
+  wget https://raw.githubusercontent.com/varnish/varnishgather/master/varnishgather
+  sudo sh ./varnishgather
+  
+
+
 What does varnishgather gather
 ------------------------------
 
