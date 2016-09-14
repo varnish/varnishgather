@@ -9,11 +9,11 @@ RHEL-based systems (including CentOS/other derivatives.).
 
 Usage
 ------
+::
 
-```
-wget https://raw.githubusercontent.com/varnish/varnishgather/master/varnishgather
-sudo sh ./varnishgather
-```  
+  wget https://raw.githubusercontent.com/varnish/varnishgather/master/varnishgather
+  sudo sh ./varnishgather
+  
 
 
 What does varnishgather gather
