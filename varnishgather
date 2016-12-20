@@ -468,6 +468,7 @@ mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
 mycat /etc/init.d/vha-agent
 mycat /etc/vha-agent/nodes.conf
+mycat /etc/varnish/nodes.conf
 mycat /var/lib/vha-agent/vha-status
 show_package vha-agent
 show_package varnish-plus-ha
