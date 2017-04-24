@@ -442,6 +442,7 @@ run uname -a
 run mount
 run df -h
 run varnishstat -1 $STATCMD
+run varnishstat -j
 run ldd $(which varnishd)
 
 NETSTAT="/bin/netstat"
