@@ -408,6 +408,7 @@ info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
 run varnishd -V
 run varnishstat -V
 run varnish-agent -V
+run vha-agent -V
 run date
 run dmesg
 mycat /var/log/dmesg
