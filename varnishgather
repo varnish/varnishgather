@@ -554,7 +554,7 @@ vadmin vcl.list
 vcls="$(vadmin_getvcls)"
 if [ -n "$vcls" ]; then
 	case "$VARNISH" in
-	*-4.0.[01]|*-3.0.*)
+	*-4.0.[01]|*-[23].*)
 		args=;;
 	*)
 		args="-v";;
