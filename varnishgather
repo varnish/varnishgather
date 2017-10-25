@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.47"
+VERSION="1.48"
 USERID="$(id -u)"
 
 # Set up environment
@@ -434,6 +434,8 @@ run dpkg --status libjemalloc1
 run rpm -qi jemalloc
 run dpkg --status libpcre3
 run rpm -qi pcre
+run dpkg --status ca-certificates
+run rpm -qi ca-certificates
 show_package gcc
 run netstat -s
 run ip a
