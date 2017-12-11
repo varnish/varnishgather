@@ -419,8 +419,9 @@ runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
 run free -m
-run vmstat 5 5
-run mpstat -P ALL 1 5
+run vmstat 1 3
+run mpstat -P ALL 1 3
+run iostat 1 3
 run lsb_release -a
 mycat /etc/redhat-release
 run sysctl -a
