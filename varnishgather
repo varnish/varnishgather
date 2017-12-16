@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.49"
+VERSION="1.50"
 USERID="$(id -u)"
 
 # Set up environment
@@ -460,11 +460,9 @@ mycat /etc/init.d/varnish
 mycat /etc/default/varnish
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
-mycat /etc/init.d/varnish-agent
-mycat /etc/default/varnish-agent
-mycat /etc/sysconfig/varnish-agent
-mycat /var/lib/varnish-agent/agent.param
-mycat /var/lib/varnish-agent/boot.vcl
+mycat /usr/lib/systemd/system/varnish.service
+mycat /etc/systemd/system/varnish.service.d/override.conf
+mycat /etc/systemd/system/varnish.service
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
@@ -483,6 +481,8 @@ show_package varnish-plus-ha
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
+mycat /var/lib/varnish-agent/agent.param
+mycat /var/lib/varnish-agent/boot.vcl
 show_package varnish-agent
 
 mycat /etc/hitch/hitch.conf
