@@ -34,22 +34,21 @@ VARNISHADMARG=""
 SECRET=""
 STATCMD=""
 ITEM=0
-TOPDIR="$(mktemp -d /tmp/varnishgather.XXXXXXXX)"
+TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
-RELDIR="varnishgather-${ID}"
-DIR="${TOPDIR}/${RELDIR}"
-LOG="${DIR}/varnishgather.log"
+RELDIR="varnishgather-$ID"
+DIR="$TOPDIR/$RELDIR"
+LOG="$DIR/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.59"
-USERID="$(id -u)"
+VERSION=1.60
+USERID=$(id -u)
 
 # Set up environment
 
-mkdir -p ${DIR}
-cd ${DIR}
+mkdir -p "$DIR"
+cd "$DIR"
 
-cleanup ()
-{
+cleanup () {
 	rm -rf "$TOPDIR"
 	exit 1
 }
@@ -60,53 +59,44 @@ trap cleanup EXIT 2
 # Takes a string, translates it into something we can use as a log
 # file name
 
-item_num()
-{
+item_num() {
 	printf "%.3d" "$ITEM"
 }
 
-logname()
-{
+logname() {
 	echo "$@" | tr -c '[:alnum:]-' '[_*]' | sed 's/_*$//'
 }
 
-log()
-{
-	echo >>${LOG} "$@"
+log() {
+	echo "$*" >>"$LOG"
 }
 
-info()
-{
-	echo 1>&2 "Info: $@"
+info() {
+	echo "Info: $*" >&2
 	log "$@"
 }
 
-warn()
-{
-	echo 1>&2 "Warning: $@"
+warn() {
+	echo "Warning: $*" >&2
 	log "$@"
 }
 
-incr()
-{
-	ITEM=$(( $ITEM + 1 ))
+incr() {
+	ITEM=$((ITEM + 1))
 }
 
-taskecho()
-{
-	echo "Task: ${ITEM}: $*"
+taskecho() {
+	echo "Task: $ITEM: $*"
 }
 
-banner()
-{
+banner() {
 	log "--------------------------------"
-	log "Item $ITEM: $@"
+	log "Item $ITEM: $*"
 	log "--------------------------------"
-	taskecho $@
+	taskecho "$*"
 }
 
-run()
-{
+run() {
 	incr
 
 	which "$1" >/dev/null 2>&1 || return 0
@@ -114,19 +104,17 @@ run()
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
 	banner "$@"
-	("$@") >> ${LOG} 2>&1
+	("$@") >>"$LOG" 2>&1
 	LOG="$OLDLOG"
 }
 
-pack_vcls()
-{
+pack_vcls() {
 	incr
 	taskecho "Compressing VCLs"
-	tar cf ${DIR}/$(item_num)_vcls.tar $(findvcls) >> ${LOG} 2>&1
+	tar cf "$DIR/$(item_num)_vcls.tar" $(findvcls) >>"$LOG" 2>&1
 }
 
-runpipe_recurse()
-{
+runpipe_recurse() {
 	CMD="$1";
 	shift;
 	if [ "x$*" = "x" ]; then
@@ -136,8 +124,7 @@ runpipe_recurse()
 	fi
 }
 
-pipeprint()
-{
+pipeprint() {
 	CMD="$1";
 	shift;
 	if [ "x$*" = "x" ]; then
@@ -145,12 +132,9 @@ pipeprint()
 	else
 		echo ${CMD} "|" $(pipeprint "$@")
 	fi
-
-
 }
 
-runpipe()
-{
+runpipe() {
 	incr
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
@@ -159,8 +143,7 @@ runpipe()
 	LOG="$OLDLOG"
 }
 
-mycat()
-{
+mycat() {
 	if [ -r $1 ]; then
 		run cat $1
 	else
@@ -168,22 +151,19 @@ mycat()
 	fi
 }
 
-vadmin()
-{
+vadmin() {
 	if [ ! -z "${VARNISHADMARG}" ]; then
 		run varnishadm ${VARNISHADMARG} -- $* 2>/dev/null
 	fi
 }
 
-vadmin_getvcls()
-{
+vadmin_getvcls() {
 	if [ ! -z "${VARNISHADMARG}" ]; then
 		varnishadm ${VARNISHADMARG} vcl.list 2>/dev/null | awk '{print $NF}'
 	fi
 }
 
-findvcls()
-{
+findvcls() {
 	base_vcls=$(find /etc/varnish -name '*vcl' 2>/dev/null)
 	[ -z "${base_vcls}" ] && return
 	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' ${base_vcls})
@@ -232,8 +212,7 @@ getarg()
 	foreacharg "$1" | tail -1
 }
 
-check_tools()
-{
+check_tools() {
 	missing=
 	for command in varnishadm varnishd varnishlog varnishstat; do
 		if [ ! $(which $command) ]; then
@@ -253,8 +232,7 @@ check_tools()
 	fi
 }
 
-list_packages()
-{
+list_packages() {
 	if [ $(which dpkg) ]; then
 		runpipe "dpkg --list" "grep $1" sort
 	elif [ $(which rpm) ]; then
@@ -264,14 +242,12 @@ list_packages()
 	fi
 }
 
-show_package()
-{
+show_package() {
 	run dpkg --status $1
 	run rpm -qi $1
 }
 
-show_limits()
-{
+show_limits() {
 	file="/proc/$(pgrep -n varnishd)/limits"
 
 	incr
@@ -284,14 +260,12 @@ show_limits()
 	LOG="$OLDLOG"
 }
 
-blockdev_cat()
-{
+blockdev_cat() {
 	echo -n >>${LOG} "$1:"
 	cat "$1" >> ${LOG} 2>&1
 }
 
-blockdev()
-{
+blockdev() {
 	incr
 
 	OLDLOG="$LOG"
@@ -306,8 +280,7 @@ blockdev()
 	LOG="$OLDLOG"
 }
 
-upload_fail()
-{
+upload_fail() {
 	warn "$1"
 	echo "==============================================================================="
 	echo "Please submit the file: $TGZ"
@@ -315,9 +288,9 @@ upload_fail()
 }
 
 # Upload gather to filebin using curl
-upload()
-{
-	if [ $(which curl) ]; then
+upload() {
+	if command -v curl >/dev/null
+	then
 			FILEBIN="https://filebin.varnish-software.com"
 			# Generate BIN name
 			BIN=$(head /dev/urandom | tr -dc a-z0-9 | head -c16)-T$UPLOAD
@@ -327,7 +300,8 @@ upload()
 				--progress-bar --silent --output /dev/null \
 				--connect-timeout 60 --max-time 1800 \
 				--write-out '%{http_code}')
-			if [ ! "$CURLSTATUS" -eq "201" ]; then
+			if [ ! "$CURLSTATUS" -eq "201" ]
+			then
 				upload_fail "Failed to upload $TGZ to $FILEBIN, http status code: $CURLSTATUS"
 				return 0
 			fi
@@ -340,14 +314,11 @@ upload()
 	fi
 }
 
-
-usage()
-{
+usage() {
 	cat <<_EOF_
 Usage: $0 [-n name] [-T host:port] [-S secretfile] [-h]
 
-Varnishgather gathers various system information into a single
-tar-ball.
+Varnishgather gathers various system information into a single tar-ball.
 
  -n <name>            Provide the name, same as the -n argument to varnishd
  -T <host:port>       Provide host and port for the management interface
@@ -379,12 +350,12 @@ check_tools
 # Proper execution starts here
 ##############################
 
-info "Varnishgather version: ${VERSION}"
-info "Invoked by: ${USERID}"
-info "Command line: $@"
-info "Working directory: ${DIR}"
+info "Varnishgather version: $VERSION"
+info "Invoked by: $USERID"
+info "Command line: $*"
+info "Working directory: $DIR"
 
-TEMP=`getopt u:n:T:S:h "$@"`
+TEMP=$(getopt n:T:S:h "$@")
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
@@ -455,7 +426,7 @@ fi
 
 VARNISH=$(varnishd -V 2>&1)
 
-info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+info "Complete varnishadm command line deduced to: $VARNISHADMARG"
 run varnishd -V
 run varnish-agent -V
 run vha-agent -V
@@ -505,13 +476,13 @@ run lvdisplay -vm
 run vgdisplay -v
 run pvdisplay -v
 run varnishstat -1 $STATCMD
-run varnishstat -j
-run ldd $(which varnishd)
+run varnishstat -j $STATCMD
+run ldd "$(which varnishd)"
 run varnishadm debug.jemalloc_stats
 
 NETSTAT="/bin/netstat"
-run "${NETSTAT}" -nlpt
-run "${NETSTAT}" -np
+run "$NETSTAT" -nlpt
+run "$NETSTAT" -np
 
 pack_vcls
 
