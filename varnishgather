@@ -207,11 +207,6 @@ foreacharg()
 	done
 }
 
-getarg()
-{
-	foreacharg "$1" | tail -1
-}
-
 check_tools() {
 	missing=
 	for command in varnishadm varnishd varnishlog varnishstat; do
@@ -330,8 +325,8 @@ Varnishgather gathers various system information into a single tar-ball.
 
 All arguments are optional. varnishgather will attempt to detect the
 arguments automatically, but will likely be confused if you have multiple
-varnish servers running. In other words: Use -T, -n and -S if you have
-multiple varnishd servers running on the same server.
+varnish servers running. Using -n should be enough to specify the desired
+varnish instance. If not, use -T and -S too.
 _EOF_
 	exit 1
 }
@@ -364,10 +359,10 @@ eval set -- "$TEMP"
 while true ; do
 	case "$1" in
 	-u) UPLOAD=$2; shift 2;;
-	-n) NAME=$2 ; shift 2;;
+	-n) NAME="-n $2" ; shift 2;;
 	-T) HOSTPORT="-T $2"; shift 2;;
 	-S)
-		if [ -r $2 ]; then
+		if [ -r "$2" ]; then
 			SECRET="-S $2";
 		else
 			info "Secret file $2 not readable."
@@ -380,50 +375,8 @@ while true ; do
 	esac
 done
 
-if [ -z "$HOSTPORT" ]; then
-	HOSTPORT=$(getarg -T)
-	if [ -z "$HOSTPORT" ]; then
-		warn "Without a hostname:port for the admin interface, this script is less useful"
-	else
-		info "Found hostport(-T argument): ${HOSTPORT}"
-		HOSTPORT="-T ${HOSTPORT}"
-	fi
-fi
-
-if [ -z "$SECRET" ]; then
-	sec=$(getarg -S)
-	if [ ! -z ${sec} ]; then
-		if [ -r ${sec} ]; then
-			info "Found secretfile(-S argument) ${sec} and it's readable. Using it."
-			SECRET="-S ${sec}"
-		elif [ -f /etc/varnish/secret ]; then
-			warn "Found secretfile(-S argument) ${sec} but it's not readable"
-		fi
-	else
-		info "Didn't find any -S argument"
-	fi
-fi
-
-if [ -z "$NAME" ]; then
-	NAMEARG=$(getarg -n)
-	if [ ! -z "$NAMEARG" ]; then
-		info "Found name: $NAMEARG"
-		NAME="$NAMEARG"
-	else
-		info "No -n argument found."
-	fi
-fi
-
-if [ ! -z "$NAME" ]; then
-	STATCMD="-n $NAME"
-fi
-
-VARNISHADMARG="${SECRET} ${HOSTPORT}"
-
-if [ ! -z "$STATCMD" ]; then
-    VARNISHADMARG="${STATCMD}"
-fi
-
+STATCMD=$NAME
+VARNISHADMARG="$NAME $SECRET $HOSTPORT"
 VARNISH=$(varnishd -V 2>&1)
 
 info "Complete varnishadm command line deduced to: $VARNISHADMARG"
