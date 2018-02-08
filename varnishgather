@@ -517,7 +517,7 @@ done
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(varnish|vha-agent|hitch)" "$a"
+		run egrep "(varnish|vha-agent|hitch|vac|rc.local)" "$a"
 	else
 		incr
 	fi
@@ -618,6 +618,11 @@ if [ -d "/etc/api-engine" ]; then
 	find /var/lib/api-engine/sync/vcl/*.vcl -type f | while read f; do
 		mycat "$f"
 	done
+fi
+
+# rc.local
+if [ -f /etc/rc.local ]; then
+	run cat /etc/rc.local
 fi
 
 cd "$ORIGPWD"
