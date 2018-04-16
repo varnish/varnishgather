@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.52"
+VERSION="1.53"
 USERID="$(id -u)"
 
 # Set up environment
@@ -468,6 +468,7 @@ mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
 mycat /proc/meminfo
+mycat /proc/crypto
 show_limits
 
 mycat /etc/sysconfig/vha-agent
