@@ -401,10 +401,10 @@ if [ ! -z "$NAME" ]; then
 	STATCMD="-n $NAME"
 fi
 
+VARNISHADMARG="${SECRET} ${HOSTPORT}"
+
 if [ ! -z "$STATCMD" ]; then
     VARNISHADMARG="${STATCMD}"
-else
-    VARNISHADMARG="${SECRET} ${HOSTPORT}"
 fi
 
 VARNISH=$(varnishd -V 2>&1)
