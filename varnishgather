@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.53"
+VERSION="1.54"
 USERID="$(id -u)"
 
 # Set up environment
@@ -401,7 +401,12 @@ if [ ! -z "$NAME" ]; then
 	STATCMD="-n $NAME"
 fi
 
-VARNISHADMARG="${SECRET} ${HOSTPORT} ${STATCMD}"
+if [ ! -z "$STATCMD" ]; then
+    VARNISHADMARG="${STATCMD}"
+else
+    VARNISHADMARG="${SECRET} ${HOSTPORT}"
+fi
+
 VARNISH=$(varnishd -V 2>&1)
 
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
