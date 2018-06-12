@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.54"
+VERSION="1.55"
 USERID="$(id -u)"
 
 # Set up environment
@@ -448,9 +448,14 @@ run ip a
 run ip n
 run ip r
 run ip -s l
+run ifconfig
 run uname -a
 run mount
 run df -h
+run fdisk -l
+run lvdisplay -vm
+run vgdisplay -v
+run pvdisplay -v
 run varnishstat -1 $STATCMD
 run varnishstat -j
 run ldd $(which varnishd)
@@ -474,6 +479,7 @@ mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
 mycat /proc/meminfo
 mycat /proc/crypto
+mycat /proc/sys/net/ipv4/tcp_tw_reuse
 show_limits
 
 mycat /etc/sysconfig/vha-agent
