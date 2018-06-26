@@ -510,6 +510,8 @@ mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
+mycat /usr/lib/systemd/system/vac.service
+mycat /etc/systemd/system/vac.service.d/override.conf
 show_package vac
 
 mycat /etc/sysconfig/vstatdprobe
