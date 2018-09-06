@@ -649,6 +649,8 @@ if [ -f /etc/rc.local ]; then
 	run cat /etc/rc.local
 fi
 
+run lspci -v -nn -k
+
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
 tar czf "$TGZ" -C "$TOPDIR" "$RELDIR"
