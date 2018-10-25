@@ -298,6 +298,41 @@ blockdev()
 	LOG="$OLDLOG"
 }
 
+upload_fail()
+{
+	warn "$1"
+	echo "==============================================================================="
+	echo "Please submit the file: $TGZ"
+	echo "==============================================================================="
+}
+
+# Upload gather to filebin using curl
+upload()
+{
+	if [ $(which curl) ]; then
+			FILEBIN="https://filebin.varnish-software.com"
+			# Generate BIN name
+			BIN=$(head /dev/urandom | tr -dc a-z0-9 | head -c16)-T$UPLOAD
+			TGZ="varnishgather.${ID}.tar.gz"
+			CURLSTATUS=$(curl --data-binary "@$TGZ" $FILEBIN \
+				-H "bin: ${BIN}" -H "filename: $TGZ" \
+				--progress-bar --silent --output /dev/null \
+				--connect-timeout 60 --max-time 1800 \
+				--write-out '%{http_code}')
+			if [ ! "$CURLSTATUS" -eq "201" ]; then
+				upload_fail "Failed to upload $TGZ to $FILEBIN, http status code: $CURLSTATUS"
+				return 0
+			fi
+			echo "==============================================================================="
+			echo "varnishgather $TGZ"
+			echo "Uploaded to: $FILEBIN/$BIN"
+			echo "==============================================================================="
+	else
+		upload_fail "\"curl\" binary not found in path, please submit file by uploading to $FILEBIN"
+	fi
+}
+
+
 usage()
 {
 	cat <<_EOF_
@@ -310,6 +345,7 @@ tar-ball.
  -T <host:port>       Provide host and port for the management interface
                       Same as the -T option to varnishd.
  -S <secretfile>      Provide a secret file, same as -S to varnishd.
+ -u <identifier>      Upload to filebin, curl needs to be installed.
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
@@ -339,7 +375,7 @@ info "Invoked by: ${USERID}"
 info "Command line: $@"
 info "Working directory: ${DIR}"
 
-TEMP=`getopt n:T:S:h "$@"`
+TEMP=`getopt u:n:T:S:h "$@"`
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
@@ -347,6 +383,7 @@ eval set -- "$TEMP"
 
 while true ; do
 	case "$1" in
+	-u) UPLOAD=$2; shift 2;;
 	-n) NAME=$2 ; shift 2;;
 	-T) HOSTPORT="-T $2"; shift 2;;
 	-S)
@@ -654,6 +691,12 @@ run lspci -v -nn -k
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
 tar czf "$TGZ" -C "$TOPDIR" "$RELDIR"
+
+if [ -n "$UPLOAD" ]; then
+	upload
+	exit 0
+fi
+
 echo "==============================================================================="
 echo "Please submit the file: $TGZ"
 echo "==============================================================================="
