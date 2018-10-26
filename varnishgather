@@ -345,7 +345,8 @@ tar-ball.
  -T <host:port>       Provide host and port for the management interface
                       Same as the -T option to varnishd.
  -S <secretfile>      Provide a secret file, same as -S to varnishd.
- -u <identifier>      Upload to filebin, curl needs to be installed.
+ -u <identifier>      Upload generated varnishgather to filebin to
+                      filebin.varnish-software.com, curl needed.
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
