@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.56"
+VERSION="1.57"
 USERID="$(id -u)"
 
 # Set up environment
@@ -448,6 +448,7 @@ fi
 VARNISH=$(varnishd -V 2>&1)
 
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+run broadcaster -V
 run varnishd -V
 run varnishstat -V
 run varnish-agent -V
@@ -457,7 +458,7 @@ run dmesg
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -472,6 +473,7 @@ run getenforce
 run umask
 list_packages varnish
 list_packages vmod
+show_package varnish-broadcaster
 show_package varnish
 show_package varnish-plus
 run dpkg --status libjemalloc1
@@ -579,7 +581,7 @@ done
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(varnish|vha-agent|hitch|vac|rc.local)" "$a"
+		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local)" "$a"
 	else
 		incr
 	fi
