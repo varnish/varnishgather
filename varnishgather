@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.56"
+VERSION="1.57"
 USERID="$(id -u)"
 
 # Set up environment
@@ -471,8 +471,10 @@ mycat /etc/redhat-release
 run sysctl -a
 run getenforce
 run umask
+list_packages varnish-broadcaster
 list_packages varnish
 list_packages vmod
+show_package varnish-broadcaster
 show_package varnish
 show_package varnish-plus
 run dpkg --status libjemalloc1
