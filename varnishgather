@@ -448,6 +448,7 @@ fi
 VARNISH=$(varnishd -V 2>&1)
 
 info "Complete varnishadm command line deduced to: ${VARNISHADMARG}"
+run broadcaster -V
 run varnishd -V
 run varnishstat -V
 run varnish-agent -V
@@ -457,7 +458,7 @@ run dmesg
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -579,7 +580,7 @@ done
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(varnish|vha-agent|hitch|vac|rc.local)" "$a"
+		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local)" "$a"
 	else
 		incr
 	fi
