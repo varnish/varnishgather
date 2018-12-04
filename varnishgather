@@ -471,7 +471,6 @@ mycat /etc/redhat-release
 run sysctl -a
 run getenforce
 run umask
-list_packages varnish-broadcaster
 list_packages varnish
 list_packages vmod
 show_package varnish-broadcaster
