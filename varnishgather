@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.57"
+VERSION="1.58"
 USERID="$(id -u)"
 
 # Set up environment
@@ -509,6 +509,15 @@ pack_vcls
 
 mycat /etc/init.d/varnish
 mycat /etc/default/varnish
+
+# MSE3 configuration file
+MSE3_PATH=$(getarg -s | awk -F, '{print $2}')
+case "$VARNISH" in
+*-[23].*|*-6.0.*)
+        mycat ${MSE3_PATH};;
+*)
+esac
+
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
 mycat /usr/lib/systemd/system/varnish.service
