@@ -40,7 +40,7 @@ RELDIR="varnishgather-${ID}"
 DIR="${TOPDIR}/${RELDIR}"
 LOG="${DIR}/varnishgather.log"
 ORIGPWD=$PWD
-VERSION="1.58"
+VERSION="1.59"
 USERID="$(id -u)"
 
 # Set up environment
@@ -202,26 +202,34 @@ findvcls()
 	echo $vcls
 }
 
+foreacharg()
+{
+	for pid in $(pgrep varnishd)
+	do
+		if [ ! -d "/proc/$pid" ]
+		then
+			info "Automatic argument detection via proc failed for $pid"
+			continue
+		fi
+		awk -v RS='\\x00' -v opt="$1" -v arg=none '
+			arg == "next" { arg = "now" }
+			index($0,opt) == 1 { arg = "opt" }
+			$0 == opt { arg = "next" }
+			arg == "now" {
+				print $0
+				arg = "none"
+			}
+			arg == "opt" {
+				print substr($0,length(opt)+1)
+				arg = "none"
+			}
+		' "/proc/$pid/cmdline"
+	done
+}
+
 getarg()
 {
-	ret=""
-	for a in `pgrep varnishd`; do
-		if [ ! -d /proc/${a} ]; then
-			info "proc non-functional. Automatic argument detection disabled."
-			return
-		fi
-		tmpret=$(awk -v RS='\\x00' -v arg=$1 's == 1 {sec=$0};
-                   $0 == arg {s=1}
-                   $0 != arg {s=0}
-                   s == 0 && index($0,arg) == 1 {sec=substr($0,length(arg)+1)}
-                   END {print sec};' /proc/${a}/cmdline)
-		if [ x$ret != "x" ] && [ $ret != $tmpret ]; then
-			log "Weird argument mismatch: $ret vs $tmpret found"
-			info "(Using last found/listed)"
-		fi
-		ret=${tmpret}
-	done
-	echo ${ret}
+	foreacharg "$1" | tail -1
 }
 
 check_tools()
@@ -511,12 +519,16 @@ mycat /etc/init.d/varnish
 mycat /etc/default/varnish
 
 # MSE3 configuration file
-MSE3_PATH=$(getarg -s | awk -F, '{print $2}')
-case "$VARNISH" in
-*-[23].*|*-6.0.*)
-        mycat ${MSE3_PATH};;
-*)
-esac
+for arg in $(IFS="
+" foreacharg -s)
+do
+	MSE3_PATH=$(echo "$arg" | awk -F, '{print $2}')
+	case "$VARNISH" in
+	*-[23].*|*-6.0.*)
+		mycat "${MSE3_PATH}" ;;
+	*) ;;
+	esac
+done
 
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
