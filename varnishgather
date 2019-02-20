@@ -37,27 +37,18 @@ ITEM=0
 TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
-DIR="$TOPDIR/$RELDIR"
-LOG="$DIR/varnishgather.log"
 ORIGPWD=$PWD
 VERSION=1.60
 USERID=$(id -u)
-
-# Set up environment
-
-mkdir -p "$DIR"
-cd "$DIR"
-
-cleanup () {
-	rm -rf "$TOPDIR"
-	exit 1
-}
-trap cleanup EXIT 2
 
 # Helpers
 
 # Takes a string, translates it into something we can use as a log
 # file name
+
+n_opt() {
+	echo "$1" | tr '/ ' __
+}
 
 item_num() {
 	printf "%.3d" "$ITEM"
@@ -359,7 +350,12 @@ eval set -- "$TEMP"
 while true ; do
 	case "$1" in
 	-u) UPLOAD=$2; shift 2;;
-	-n) NAME="-n $2" ; shift 2;;
+	-n)
+		NAME="-n $2"
+		ID="$ID-$(n_opt "$2")"
+		RELDIR="$RELDIR-$(n_opt "$2")"
+		shift 2
+		;;
 	-T) HOSTPORT="-T $2"; shift 2;;
 	-S)
 		if [ -r "$2" ]; then
@@ -378,6 +374,20 @@ done
 STATCMD=$NAME
 VARNISHADMARG="$NAME $SECRET $HOSTPORT"
 VARNISH=$(varnishd -V 2>&1)
+
+# Set up environment
+
+DIR="$TOPDIR/$RELDIR"
+LOG="$DIR/varnishgather.log"
+
+mkdir -p "$DIR"
+cd "$DIR"
+
+cleanup () {
+	rm -rf "$TOPDIR"
+	exit 1
+}
+trap cleanup EXIT 2
 
 info "Complete varnishadm command line deduced to: $VARNISHADMARG"
 run varnishd -V
