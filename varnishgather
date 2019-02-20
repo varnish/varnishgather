@@ -465,7 +465,7 @@ do
 	MSE3_PATH=$(echo "$arg" | awk -F, '{print $2}')
 	case "$VARNISH" in
 	*-[23].*|*-6.0.*)
-		mycat "${MSE3_PATH}" ;;
+		[ -f "${MSE3_PATH}" ] && mycat "${MSE3_PATH}" ;;
 	*) ;;
 	esac
 done
