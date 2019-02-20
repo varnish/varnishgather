@@ -322,24 +322,9 @@ _EOF_
 	exit $1
 }
 
-if [ "${USERID}" -ne "0" ]; then
-	echo "#######################################################"
-	echo "Running as non-root, the results might not be complete."
-	echo "Please run again as root."
-	echo "#######################################################"
-	sleep 10
-fi
-
-check_tools
-
 ##############################
 # Proper execution starts here
 ##############################
-
-info "Varnishgather version: $VERSION"
-info "Invoked by: $USERID"
-info "Command line: $*"
-info "Working directory: $DIR"
 
 while getopts hn:S:T:u: opt
 do
@@ -394,6 +379,21 @@ cleanup () {
 	exit 1
 }
 trap cleanup EXIT 2
+
+info "Varnishgather version: $VERSION"
+info "Invoked by: $USERID"
+info "Command line: $*"
+info "Working directory: $DIR"
+
+if [ "${USERID}" -ne "0" ]; then
+	echo "#######################################################"
+	echo "Running as non-root, the results might not be complete."
+	echo "Please run again as root."
+	echo "#######################################################"
+	sleep 10
+fi
+
+check_tools
 
 info "Complete varnishadm command line deduced to: $VARNISHADMARG"
 run varnishd -V
