@@ -406,7 +406,7 @@ run hostname
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|vcs|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -513,6 +513,7 @@ mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
 show_package vac
 
+# old vcs names
 mycat /etc/sysconfig/vstatdprobe
 mycat /etc/default/vstatdprobe
 mycat /etc/init.d/vstatdprobe
@@ -527,6 +528,21 @@ mycat /etc/systemd/system/vstatd.service
 mycat /usr/lib/systemd/system/vstatdprobe.service
 mycat /etc/systemd/system/vstatdprobe.service.d/override.conf
 mycat /etc/systemd/system/vstatdprobe.service
+# new vcs names
+mycat /etc/sysconfig/vcs-agent
+mycat /etc/default/vcs-agent
+mycat /etc/init.d/vcs-agent
+mycat /etc/sysconfig/vcs
+mycat /etc/default/vcs
+mycat /etc/init.d/vcs
+mycat /etc/varnish/vcs.params
+mycat /etc/varnish/vcs-agent.params
+mycat /usr/lib/systemd/system/vcs.service
+mycat /etc/systemd/system/vcs.service.d/override.conf
+mycat /etc/systemd/system/vcs.service
+mycat /usr/lib/systemd/system/vcs-agent.service
+mycat /etc/systemd/system/vcs-agent.service.d/override.conf
+mycat /etc/systemd/system/vcs-agent.service
 run lsof -i :5558
 show_package varnish-custom-statistics
 show_package varnish-custom-statistics-probe
