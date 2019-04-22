@@ -529,14 +529,6 @@ mycat /usr/lib/systemd/system/vstatdprobe.service
 mycat /etc/systemd/system/vstatdprobe.service.d/override.conf
 mycat /etc/systemd/system/vstatdprobe.service
 # new vcs names
-mycat /etc/sysconfig/vcs-agent
-mycat /etc/default/vcs-agent
-mycat /etc/init.d/vcs-agent
-mycat /etc/sysconfig/vcs
-mycat /etc/default/vcs
-mycat /etc/init.d/vcs
-mycat /etc/varnish/vcs.params
-mycat /etc/varnish/vcs-agent.params
 mycat /usr/lib/systemd/system/vcs.service
 mycat /etc/systemd/system/vcs.service.d/override.conf
 mycat /etc/systemd/system/vcs.service
