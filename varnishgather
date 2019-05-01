@@ -529,12 +529,8 @@ mycat /usr/lib/systemd/system/vstatdprobe.service
 mycat /etc/systemd/system/vstatdprobe.service.d/override.conf
 mycat /etc/systemd/system/vstatdprobe.service
 # new vcs names
-mycat /usr/lib/systemd/system/vcs.service
-mycat /etc/systemd/system/vcs.service.d/override.conf
-mycat /etc/systemd/system/vcs.service
-mycat /usr/lib/systemd/system/vcs-agent.service
-mycat /etc/systemd/system/vcs-agent.service.d/override.conf
-mycat /etc/systemd/system/vcs-agent.service
+run systemctl cat vcs.service
+run systemctl cat vcs-agent.service
 run lsof -i :5558
 show_package varnish-custom-statistics
 show_package varnish-custom-statistics-probe
