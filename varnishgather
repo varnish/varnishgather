@@ -472,9 +472,7 @@ done
 
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
-mycat /usr/lib/systemd/system/varnish.service
-mycat /etc/systemd/system/varnish.service.d/override.conf
-mycat /etc/systemd/system/varnish.service
+run systemctl cat varnish.service
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
@@ -497,9 +495,7 @@ mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
 mycat /var/lib/varnish-agent/agent.param
 mycat /var/lib/varnish-agent/boot.vcl
-mycat /usr/lib/systemd/system/varnish-agent.service
-mycat /etc/systemd/system/varnish-agent.service.d/override.conf
-mycat /etc/systemd/system/varnish-agent.service
+run systemctl cat varnish-agent.service
 mycat /etc/varnish/varnish-agent.params
 show_package varnish-agent
 
@@ -522,12 +518,8 @@ mycat /etc/default/vstatd
 mycat /etc/init.d/vstatd
 mycat /etc/varnish/vstatd.params
 mycat /etc/varnish/vstatdprobe.params
-mycat /usr/lib/systemd/system/vstatd.service
-mycat /etc/systemd/system/vstatd.service.d/override.conf
-mycat /etc/systemd/system/vstatd.service
-mycat /usr/lib/systemd/system/vstatdprobe.service
-mycat /etc/systemd/system/vstatdprobe.service.d/override.conf
-mycat /etc/systemd/system/vstatdprobe.service
+run systemctl cat vstatd.service
+run systemctl cat vstatdprobe.service
 # new vcs names
 run systemctl cat vcs.service
 run systemctl cat vcs-agent.service
