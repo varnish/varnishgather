@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.61
+VERSION=1.62
 USERID=$(id -u)
 
 # Helpers
