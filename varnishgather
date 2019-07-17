@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.65
+VERSION=1.66
 USERID=$(id -u)
 
 # Helpers
@@ -530,7 +530,6 @@ run systemctl cat vstatdprobe.service
 # new vcs names
 run systemctl cat vcs.service
 run systemctl cat vcs-agent.service
-run lsof -i :5558
 show_package varnish-custom-statistics
 show_package varnish-custom-statistics-probe
 
@@ -538,6 +537,11 @@ mycat /etc/hosts
 
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
+
+# lsof
+for pid in $(pidof varnishd); do
+	run lsof -p $pid
+done
 
 for a in /sys/block/*; do
 	blockdev "$a"
