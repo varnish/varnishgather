@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.66
+VERSION=1.67
 USERID=$(id -u)
 
 # Helpers
@@ -622,6 +622,9 @@ case "$VARNISH" in
 	args="-g raw";;
 esac
 run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
+
+# perf
+run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g")
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
