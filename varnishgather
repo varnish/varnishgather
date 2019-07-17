@@ -462,7 +462,7 @@ mycat /etc/default/varnish
 for arg in $(IFS="
 " foreacharg -s)
 do
-	MSE3_PATH=$(echo "$arg" | awk -F, '/^mse/ {print $2}')
+	MSE3_PATH=$(echo "$arg" | awk -F, '/^mse|=mse/ {print $2}')
 	case "$VARNISH" in
 	*-6.0.*)
 		[ -f "${MSE3_PATH}" ] && mycat "${MSE3_PATH}" ;;
