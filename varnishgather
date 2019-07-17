@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.63
+VERSION=1.64
 USERID=$(id -u)
 
 # Helpers
@@ -462,7 +462,7 @@ mycat /etc/default/varnish
 for arg in $(IFS="
 " foreacharg -s)
 do
-	MSE3_PATH=$(echo "$arg" | awk -F, '{print $2}')
+	MSE3_PATH=$(echo "$arg" | awk -F, '/^mse/ {print $2}')
 	case "$VARNISH" in
 	*-[23].*|*-6.0.*)
 		[ -f "${MSE3_PATH}" ] && mycat "${MSE3_PATH}" ;;
