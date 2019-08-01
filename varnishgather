@@ -157,7 +157,7 @@ vadmin_getvcls() {
 findvcls() {
 	base_vcls=$(find /etc/varnish -name '*vcl' 2>/dev/null)
 	[ -z "${base_vcls}" ] && return
-	include_vcls=$(sed -e '/^include /!d; s/include\s*//g; s/[\";]//g' ${base_vcls})
+	include_vcls=$(sed -n 's@^\s*include\s*"\([^\\"]\+\)"\s*;.*@\1@p' ${base_vcls})
 
 	vcls=$(for file in $include_vcls ${base_vcls}; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
