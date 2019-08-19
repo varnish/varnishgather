@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.68
+VERSION=1.69
 USERID=$(id -u)
 
 # Helpers
@@ -251,7 +251,7 @@ blockdev_cat() {
 	cat "$1" >> ${LOG} 2>&1
 }
 
-blockdev() {
+call_blockdev() {
 	incr
 
 	OLDLOG="$LOG"
@@ -544,8 +544,15 @@ for pid in $(pidof varnishd); do
 done
 
 for a in /sys/block/*; do
-	blockdev "$a"
+	call_blockdev "$a"
 done
+
+run lsblk
+
+for d in $(lsblk -l -o NAME -n); do
+	run blockdev --getbsz /dev/$d
+done
+
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
