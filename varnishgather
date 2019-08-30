@@ -551,9 +551,9 @@ done
 
 run lsblk
 
-for d in $(lsblk -l -o NAME -n); do
-	run blockdev --getbsz /dev/$d
-done
+#for d in $(lsblk -l -o NAME -n); do
+#	run blockdev --getbsz /dev/$d
+#done
 
 
 for a in /var/log/messages /var/log/syslog; do
