@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.69
+VERSION=1.70
 USERID=$(id -u)
 
 # Helpers
@@ -312,6 +312,7 @@ Varnishgather gathers various system information into a single tar-ball.
  -S <secretfile>      Provide a secret file, same as -S to varnishd.
  -u <identifier>      Upload generated varnishgather to filebin to
                       filebin.varnish-software.com, curl needed.
+ -p                   Perform a perf capture.
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
@@ -326,10 +327,11 @@ _EOF_
 # Proper execution starts here
 ##############################
 
-while getopts hn:S:T:u: opt
+while getopts hpn:S:T:u: opt
 do
 	case $opt in
 	u) UPLOAD=$OPTARG ;;
+	p) PERF="TRUE" ;;
 	n)
 		NAME="-n $OPTARG"
 		ID="$ID-$(n_opt "$OPTARG")"
@@ -631,7 +633,10 @@ esac
 run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 
 # perf
-run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g")
+if [ "$PERF" = "TRUE" ]
+then
+	run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g") -g
+fi
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
