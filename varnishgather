@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.70
+VERSION=1.71
 USERID=$(id -u)
 
 # Helpers
@@ -539,6 +539,7 @@ mycat /etc/hosts
 
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
+run find /var/lib/varnish-agent -ls
 
 # lsof
 for pid in $(pidof varnishd); do
