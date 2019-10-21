@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.71
+VERSION=1.72
 USERID=$(id -u)
 
 # Helpers
@@ -408,7 +408,7 @@ run hostname
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|vcs|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|vcs|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster|mongod)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -426,6 +426,7 @@ list_packages vmod
 show_package varnish-broadcaster
 show_package varnish
 show_package varnish-plus
+show_package mongodb
 run dpkg --status libjemalloc1
 run rpm -qi jemalloc
 run dpkg --status libpcre3
@@ -517,6 +518,8 @@ mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
 show_package vac
+
+mycat /var/log/mongodb/mongodb.log
 
 # old vcs names
 mycat /etc/sysconfig/vstatdprobe
