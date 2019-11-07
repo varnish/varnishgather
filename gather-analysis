@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# varnishgather analysis
+#
+
+if ! grep -i "varnishgather version" varnishgather.log
+then
+	echo
+	echo "Are you running this in a varnishgather extract directory?"
+	exit 1
+fi
+
+echo
+echo -n "Version: "
+cat *varnishd_-V | grep ^varnishd
+
+echo -n "Hostname: "
+cat *hostname | tail -1
+
+echo
+echo -n "Cmdline: "
+cat *ps_aux* | grep varnishd | tail -1 | sed "s/^.*varnishd/varnishd/" | sed "s/\s-/\n\t-/g"
+
+echo
+echo -n "Memory usage: "
+cat *ps_aux* | grep varnishd | tail -1 | awk '{printf "%0.2fGB (%s%%)\n", $6/1024/1024, $4}'
+
+echo -n "CPU usage: "
+cat *ps_aux* | grep varnishd | tail -1 | awk '{print $3 "%"}'
+
+echo -n "System memory: "
+cat *_free_* | grep ^Mem | awk '{printf "%0.2fGB (%0.2fGB free)\n", $2/1024, $7/1024}'
+
+echo -n "CPU(s): "
+cat *proc_cpuinfo | grep ^processor | wc -l
+
+echo
+echo "varnishstat"
+cat *varnishstat_-1 | egrep "client_req |\.cache_hit |\.cache_miss|\.threads |theads_limited|n_object |nuked|\.bans |\.g_bytes|g_space|\.g_objects|\.g_alloc_bytes|.g_free_extents"
+
+echo
+if ! cat *log_messages *log_syslog 2>/dev/null | egrep -m 20 "oom-killer|Child \("
+then
+	echo "No critical syslog messages"
+fi
+
+echo
+if ! cat *panic_show | grep -A1 -B1 "Assert error"
+then
+	echo "No panics"
+fi
+
+if [ "$(which varnishlog)" -a -f varnishlog.raw ]
+then
+	echo
+	echo -n "Requests found: "
+	varnishlog -r varnishlog.raw -c -i ReqMethod | grep ReqMethod | wc -l
+	echo -n "Cache hit time: "
+	varnishlog -r varnishlog.raw -c -q "ReqMethod eq GET and VCL_call eq HIT" -i Timestamp | grep Resp: | awk '{t+=$5}END{print t/(NR+0.0000001) " (" NR ")"}'
+	echo -n "Cache miss time: "
+	varnishlog -r varnishlog.raw -c -q "ReqMethod eq GET and VCL_call eq MISS" -i Timestamp | grep Resp: | awk '{t+=$5}END{print t/(NR+0.0000001) " (" NR ")"}'
+fi

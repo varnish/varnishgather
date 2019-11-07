@@ -38,8 +38,9 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.72
+VERSION=1.73
 USERID=$(id -u)
+ANALYSIS_URL=https://raw.githubusercontent.com/varnish/varnishgather/master/gather-analysis
 
 # Helpers
 
@@ -641,6 +642,9 @@ if [ "$PERF" = "TRUE" ]
 then
 	run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g") -g
 fi
+
+echo "curl -fsS \"$ANALYSIS_URL\" | bash" > gather_analysis
+chmod 755 gather_analysis
 
 if [ -d "/etc/api-engine" ]; then
 	# Packages
