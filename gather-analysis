@@ -39,9 +39,10 @@ echo "varnishstat"
 cat *varnishstat_-1 | egrep "client_req |\.cache_hit |\.cache_miss|\.threads |theads_limited|n_object |nuked|\.bans |\.g_bytes|g_space|\.g_objects|\.g_alloc_bytes|.g_free_extents"
 
 echo
+echo "system messages"
 if ! cat *log_messages *log_syslog 2>/dev/null | egrep -m 20 "oom-killer|Child \("
 then
-	echo "No critical syslog messages"
+	echo "No critical messages found"
 fi
 
 echo

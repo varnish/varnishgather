@@ -11,7 +11,7 @@ Usage
 ------
 ::
 
-  wget https://raw.githubusercontent.com/varnish/varnishgather/master/varnishgather
+  wget -N https://raw.githubusercontent.com/varnish/varnishgather/master/varnishgather
   sudo sh ./varnishgather
   
 
