@@ -518,6 +518,7 @@ mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
+run systemctl cat vac
 show_package vac
 
 mycat /var/log/mongodb/mongodb.log
