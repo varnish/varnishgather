@@ -644,9 +644,6 @@ then
 	run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g") -g
 fi
 
-echo "curl -fsS \"$ANALYSIS_URL\" | bash" > gather_analysis
-chmod 755 gather_analysis
-
 if [ -d "/etc/api-engine" ]; then
 	# Packages
 	runpipe "rpm -qa" "grep api-engine"
