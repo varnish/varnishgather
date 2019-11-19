@@ -514,6 +514,9 @@ mycat /etc/hitch/hitch.conf
 show_package hitch
 show_package varnish-plus-addon-ssl
 
+mycat /etc/varnish/modsec/modsecurity.conf
+show_package varnish-plus-waf
+
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
