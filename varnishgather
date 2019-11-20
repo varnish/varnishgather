@@ -174,6 +174,24 @@ findvcls() {
 	echo $vcls
 }
 
+findmodsec() {
+        base_modsec=$(find /etc/varnish/modsec -name '*' 2>/dev/null)
+        [ -z "${base_modsec}" ] && return
+
+        modsec=$(for file in ${base_modsec}; do
+                is_absolute=$(echo $file | sed -e '/^\//!d')
+                if [ -z "$is_absolute" ]; then
+                        file="/etc/varnish/$file"
+                fi
+
+		if [ -e "$file" ]; then
+			echo $file;
+		fi
+
+        done | sort | uniq)
+	tar cf "$DIR/$(item_num)_modsec.tar" $modsec >>"$LOG" 2>&1
+}
+
 foreacharg()
 {
 	for pid in $(pgrep varnishd)
@@ -584,6 +602,11 @@ fi
 
 # VCLs
 for a in $(findvcls); do
+	mycat $a
+done
+
+# Modsec
+for a in $(findmodsec); do
 	mycat $a
 done
 
