@@ -35,11 +35,15 @@ SECRET=""
 STATCMD=""
 ITEM=0
 TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
-ID="$(hostname)-$(date +'%Y-%m-%d')"
+ID="$(cat /etc/hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.75
+VERSION=1.76
 USERID=$(id -u)
+PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
+PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
+PID_VARNISHD=$(pgrep varnishd 2> /dev/null)
+PID_CACHEMAIN=$(pgrep cache-main 2> /dev/null)
 
 # Helpers
 
@@ -142,6 +146,23 @@ mycat() {
 	fi
 }
 
+get_pid () {
+	pidir="$(ls /proc/ | grep -E '^[0-9]+$' 2>&1)"
+	for pid in $pidir; do
+		pidnme="$(grep -e "^Name" /proc/$pid/status 2>&1 | awk '{print $2}')"
+		if [ $pidnme = "varnishd" ] && [ -z "${PID_VARNISHD}" ]; then
+			PID_VARNISHD="${PID_VARNISHD}$(grep -e "^Pid" /proc/$pid/status | awk '{print $2 }')"
+		elif [ $pidnme = "cache-main" ] && [ -z "${PID_CACHEMAIN}" ]; then
+			PID_CACHEMAIN="${PID_CACHEMAIN}$(grep -e "^Pid" /proc/$pid/status | awk '{print $2 }')"
+		fi
+	done
+
+	if [ -z "${PID_ALL_VARNISHD}" ] && [ -z "${PID_ALL_VARNISHD_COMMA}" ]; then
+		PID_ALL_VARNISHD=$(echo "${PID_VARNISHD} ${PID_CACHEMAIN}" | tr '\n' ' ')
+		PID_ALL_VARNISHD_COMMA=$(echo "${PID_VARNISHD} ${PID_CACHEMAIN}" | tr '\n' ' ' | sed 's/ /,/g')
+	fi
+}
+
 vadmin() {
 	if [ ! -z "${VARNISHADMARG}" ]; then
 		run varnishadm ${VARNISHADMARG} -- $* 2>/dev/null
@@ -190,10 +211,9 @@ findmodsec() {
         done | sort | uniq)
 	tar cf "$DIR/$(item_num)_modsec.tar" $modsec >>"$LOG" 2>&1
 }
-
 foreacharg()
 {
-	for pid in $(pgrep varnishd)
+	for pid in ${PID_VARNISHD}
 	do
 		if [ ! -d "/proc/$pid" ]
 		then
@@ -252,7 +272,7 @@ show_package() {
 }
 
 show_limits() {
-	file="/proc/$(pgrep -n varnishd)/limits"
+	file="/proc/$(echo $PID_VARNISHD | awk '{print $1;}')/limits"
 
 	incr
 
@@ -415,6 +435,10 @@ fi
 
 check_tools
 
+if [ ! $(command -v pidof) ] || [ ! $(command -v pgrep) ]; then
+	 get_pid
+fi
+
 info "Complete varnishadm command line deduced to: $VARNISHADMARG"
 run varnishd -V
 run varnish-agent -V
@@ -422,7 +446,7 @@ run vha-agent -V
 run broadcaster -V
 run date
 run dmesg
-run hostname
+mycat /etc/hostname
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
@@ -567,7 +591,7 @@ run find /var/lib/varnish -ls
 run find /var/lib/varnish-agent -ls
 
 # lsof
-for pid in $(pidof varnishd); do
+for pid in ${PID_ALL_VARNISHD}; do
 	run lsof -p $pid
 done
 
@@ -610,18 +634,20 @@ for a in $(findmodsec); do
 done
 
 # maps
-for pid in $(pidof varnishd); do
+for pid in ${PID_ALL_VARNISHD}; do
 	runpipe "awk '$2 ~ \"rw\"' /proc/$pid/maps" "wc -l"
 done
 
 # Pick up the basic memory offset the text segments are in.
-for pid in $(pidof varnishd); do
+for pid in ${PID_ALL_VARNISHD}; do
 	run grep "r-xp" /proc/$pid/maps
 done
 
 # Get cache memory maps
-mycat /proc/$(pgrep cache-main)/smaps
-mycat /proc/$(pgrep cache-main)/status
+for pid in ${PID_CACHEMAIN}; do
+	mycat /proc/$pid/smaps
+	mycat /proc/$pid/status
+done
 
 if [ -z "${VARNISHADMARG}" ]; then
 	banner "NO ADMINPORT SUPPLIED OR FOUND"
@@ -670,7 +696,7 @@ run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 # perf
 if [ "$PERF" = "TRUE" ]
 then
-	run timeout -s TERM 5 perf record -F 99 -p $(pidof varnishd | sed "s/ /,/g") -g
+	run timeout -s TERM 5 perf record -F 99 -p ${PID_ALL_VARNISHD_COMMA} -g
 fi
 
 if [ -d "/etc/api-engine" ]; then
