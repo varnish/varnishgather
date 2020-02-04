@@ -91,7 +91,7 @@ banner() {
 run() {
 	incr
 
-	which "$1" >/dev/null 2>&1 || return 0
+	command -v "$1" >/dev/null 2>&1 || return 0
 
 	OLDLOG="$LOG"
 	LOG="${DIR}/$(item_num)_$(logname "$@")"
@@ -220,7 +220,7 @@ foreacharg()
 check_tools() {
 	missing=
 	for command in varnishadm varnishd varnishlog varnishstat; do
-		if [ ! $(which $command) ]; then
+		if [ ! $(command -v $command) ]; then
 			missing="$missing$command "
 		fi
 	done
@@ -238,9 +238,9 @@ check_tools() {
 }
 
 list_packages() {
-	if [ $(which dpkg) ]; then
+	if [ $(command -v dpkg) ]; then
 		runpipe "dpkg --list" "grep $1" sort
-	elif [ $(which rpm) ]; then
+	elif [ $(command -v rpm) ]; then
 		runpipe "rpm -qa" "grep $1" sort
 	else
 		incr
@@ -468,7 +468,7 @@ run vgdisplay -v
 run pvdisplay -v
 run varnishstat -1 $STATCMD
 run varnishstat -j $STATCMD
-run ldd "$(which varnishd)"
+run ldd "$(command -v varnishd)"
 run varnishadm debug.jemalloc_stats
 
 NETSTAT="/bin/netstat"
