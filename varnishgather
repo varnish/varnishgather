@@ -38,9 +38,8 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.73
+VERSION=1.74
 USERID=$(id -u)
-ANALYSIS_URL=https://raw.githubusercontent.com/varnish/varnishgather/master/gather-analysis
 
 # Helpers
 
@@ -618,6 +617,12 @@ done
 # Pick up the basic memory offset the text segments are in.
 for pid in $(pidof varnishd); do
 	run grep "r-xp" /proc/$pid/maps
+done
+
+# Get memory maps
+for pid in $(pidof varnishd); do
+	mycat /proc/$pid/smaps
+	mycat /proc/$pid/status
 done
 
 if [ -z "${VARNISHADMARG}" ]; then
