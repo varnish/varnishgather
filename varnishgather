@@ -619,11 +619,9 @@ for pid in $(pidof varnishd); do
 	run grep "r-xp" /proc/$pid/maps
 done
 
-# Get memory maps
-for pid in $(pidof varnishd); do
-	mycat /proc/$pid/smaps
-	mycat /proc/$pid/status
-done
+# Get cache memory maps
+mycat /proc/$(pgrep cache-main)/smaps
+mycat /proc/$(pgrep cache-main)/status
 
 if [ -z "${VARNISHADMARG}" ]; then
 	banner "NO ADMINPORT SUPPLIED OR FOUND"
