@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.74
+VERSION=1.75
 USERID=$(id -u)
 
 # Helpers
@@ -468,7 +468,7 @@ run pvdisplay -v
 run varnishstat -1 $STATCMD
 run varnishstat -j $STATCMD
 run ldd "$(command -v varnishd)"
-run varnishadm debug.jemalloc_stats
+run varnishadm ${VARNISHADMARG} debug.jemalloc_stats
 
 NETSTAT="/bin/netstat"
 run "$NETSTAT" -nlpt
