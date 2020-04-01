@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y-%m-%d')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.76
+VERSION=1.77
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -531,6 +531,9 @@ mycat /proc/user_beancounters
 mycat /proc/meminfo
 mycat /proc/crypto
 mycat /proc/sys/net/ipv4/tcp_tw_reuse
+for pid in ${PID_VARNISHD}; do
+	mycat /proc/$pid/cgroup
+done
 show_limits
 
 mycat /etc/sysconfig/vha-agent
