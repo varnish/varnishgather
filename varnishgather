@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.81
+VERSION=1.82
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -488,6 +488,7 @@ run ip -s l
 run ifconfig
 run uname -a
 run mount
+runpipe mount sort
 run df -h
 run fdisk -l
 run lvdisplay -vm
