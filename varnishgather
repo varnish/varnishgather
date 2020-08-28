@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d /tmp/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.81
+VERSION=1.83
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -464,8 +464,7 @@ mycat /etc/redhat-release
 run sysctl -a
 run getenforce
 runpipe "semodule -l" "grep varnish"
-runpipe "ausearch -c varnishd --raw" "audit2allow"	# mgt
-runpipe "ausearch -c cache-main --raw" "audit2allow"	# cld
+runpipe "ausearch --context varnish --raw" "audit2allow"
 run umask
 list_packages varnish
 list_packages vmod
