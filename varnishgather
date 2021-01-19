@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.85
+VERSION=1.86
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -444,6 +444,12 @@ run varnishd -V
 run varnish-agent -V
 run vha-agent -V
 run broadcaster -V
+run nats-server -v
+run vcli version
+run varnish-controller-brainz -version
+run varnish-controller-agent -version
+run varnish-controller-api-gw -version
+run varnish-controller-ui -version
 run date
 run dmesg
 run hostname
@@ -451,7 +457,7 @@ mycat /etc/hostname
 mycat /var/log/dmesg
 mycat /proc/cpuinfo
 mycat /proc/version
-runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|vcs|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster|mongod)"
+runpipe "ps aux" "egrep (varnish|vha-agent|vac|vstatd|vcs|apache|mysql|nginx|httpd|stud|hitch|stunnel|api-engine|broadcaster|mongod|varnish-controller)"
 runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
@@ -469,6 +475,12 @@ runpipe "ausearch --context varnish --raw" "audit2allow"
 run umask
 list_packages varnish
 list_packages vmod
+show_package varnish-controller-agent
+show_package varnish-controller-brainz
+show_package varnish-controller-api-gw
+show_package varnish-controller-nats
+show_package varnish-controller-ui
+show_package varnish-controller-cli
 show_package varnish-broadcaster
 show_package varnish
 show_package varnish-plus
@@ -527,6 +539,13 @@ for arg in $(IFS="
 do
 	mycat "$arg"
 done
+
+mycat /etc/varnish/nats.conf
+run systemctl cat varnish-controller-nats.service
+run systemctl cat varnish-controller-api-gw.service
+run systemctl cat varnish-controller-agent.service
+run systemctl cat varnish-controller-brainz.service
+run systemctl cat varnish-controller-ui.service
 
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
@@ -617,7 +636,7 @@ run lsblk
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local)" "$a"
+		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller)" "$a"
 	else
 		incr
 	fi
