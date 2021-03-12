@@ -456,7 +456,7 @@ runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
 run free -m
-run vmstat 1 3
+run vmstat -w 1 3
 run mpstat -P ALL 1 3
 run iostat 1 3
 run lsb_release -a
