@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.86
+VERSION=1.87
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -709,7 +709,7 @@ case "$VARNISH" in
 *-[23].*|*-4.0.*)
 	vadmin debug.health;;
 *)
-	vadmin backend.list -p;;
+	vadmin backend.list -p "*.*";;
 esac
 vadmin panic.show
 
