@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.87
+VERSION=1.88
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -544,7 +544,7 @@ mycat /etc/varnish/nats.conf
 run systemctl cat varnish-controller-nats.service
 run systemctl cat varnish-controller-api-gw.service
 run systemctl cat varnish-controller-agent.service
-run systemctl cat varnish-controller-brainz.service
+runpipe "systemctl cat varnish-controller-brainz.service" "grep -v _PASS"
 run systemctl cat varnish-controller-ui.service
 
 mycat /etc/sysconfig/varnish
