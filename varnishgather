@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.88
+VERSION=1.89
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -613,6 +613,8 @@ show_package varnish-custom-statistics
 show_package varnish-custom-statistics-probe
 
 mycat /etc/hosts
+mycat /etc/resolv.conf
+mycat /etc/nsswitch.conf
 
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
