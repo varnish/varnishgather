@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.89
+VERSION=1.90
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -638,7 +638,7 @@ run lsblk
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
-		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller)" "$a"
+		run egrep "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$a"
 	else
 		incr
 	fi
