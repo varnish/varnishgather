@@ -478,6 +478,21 @@ show_packages \
 	'*pcre*' \
 	ca-certificates
 
+run systemctl cat \
+	varnish \
+	varnish-agent \
+	varnish-controller-agent \
+	varnish-controller-api-gw \
+	varnish-controller-nats \
+	varnish-controller-ui \
+	vcs \
+	vcs-agent \
+	vstatd \
+	vstatdprobe \
+	vac
+
+runpipe "systemctl cat varnish-controller-brainz" "grep -v _PASS"
+
 run netstat -s
 run ip a
 run ip n
@@ -527,15 +542,9 @@ do
 done
 
 mycat /etc/varnish/nats.conf
-run systemctl cat varnish-controller-nats.service
-run systemctl cat varnish-controller-api-gw.service
-run systemctl cat varnish-controller-agent.service
-runpipe "systemctl cat varnish-controller-brainz.service" "grep -v _PASS"
-run systemctl cat varnish-controller-ui.service
 
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
-run systemctl cat varnish.service
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
 mycat /proc/user_beancounters
@@ -559,7 +568,6 @@ mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
 mycat /var/lib/varnish-agent/agent.param
 mycat /var/lib/varnish-agent/boot.vcl
-run systemctl cat varnish-agent.service
 mycat /etc/varnish/varnish-agent.params
 
 mycat /etc/hitch/hitch.conf
@@ -570,7 +578,6 @@ mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
-run systemctl cat vac
 
 mycat /var/log/mongodb/mongodb.log
 
@@ -583,11 +590,6 @@ mycat /etc/default/vstatd
 mycat /etc/init.d/vstatd
 mycat /etc/varnish/vstatd.params
 mycat /etc/varnish/vstatdprobe.params
-run systemctl cat vstatd.service
-run systemctl cat vstatdprobe.service
-# new vcs names
-run systemctl cat vcs.service
-run systemctl cat vcs-agent.service
 
 mycat /etc/hosts
 mycat /etc/resolv.conf
