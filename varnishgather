@@ -256,19 +256,11 @@ check_tools() {
 	fi
 }
 
-list_packages() {
-	if [ $(command -v dpkg) ]; then
-		runpipe "dpkg --list" "grep $1" sort
-	elif [ $(command -v rpm) ]; then
-		runpipe "rpm -qa" "grep $1" sort
-	else
-		incr
-	fi
-}
-
-show_package() {
-	run dpkg --status $1
-	run rpm -qi $1
+show_packages() {
+	run dpkg --list "$@"
+	run dpkg --status "$@"
+	run rpm --query --all "$@"
+	run rpm --query --all --info "$@"
 }
 
 show_limits() {
@@ -473,25 +465,19 @@ runpipe "semodule -l" "grep varnish"
 runpipe "semodule -lfull" "grep varnish"
 runpipe "ausearch --context varnish --raw" "audit2allow"
 run umask
-list_packages varnish
-list_packages vmod
-show_package varnish-controller-agent
-show_package varnish-controller-brainz
-show_package varnish-controller-api-gw
-show_package varnish-controller-nats
-show_package varnish-controller-ui
-show_package varnish-controller-cli
-show_package varnish-broadcaster
-show_package varnish
-show_package varnish-plus
-show_package mongodb
-run dpkg --status libjemalloc1
-run rpm -qi jemalloc
-run dpkg --status libpcre3
-run rpm -qi pcre
-run dpkg --status ca-certificates
-run rpm -qi ca-certificates
-show_package gcc
+
+show_packages \
+	'varnish*' \
+	'*vmod*' \
+	vac \
+	vha-agent \
+	hitch \
+	gcc \
+	mongodb \
+	'*jemalloc*' \
+	'*pcre*' \
+	ca-certificates
+
 run netstat -s
 run ip a
 run ip n
@@ -567,8 +553,6 @@ mycat /etc/init.d/vha-agent
 mycat /etc/vha-agent/nodes.conf
 mycat /etc/varnish/nodes.conf
 mycat /var/lib/vha-agent/vha-status
-show_package vha-agent
-show_package varnish-plus-ha
 
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
@@ -577,21 +561,16 @@ mycat /var/lib/varnish-agent/agent.param
 mycat /var/lib/varnish-agent/boot.vcl
 run systemctl cat varnish-agent.service
 mycat /etc/varnish/varnish-agent.params
-show_package varnish-agent
 
 mycat /etc/hitch/hitch.conf
-show_package hitch
-show_package varnish-plus-addon-ssl
 
 mycat /etc/varnish/modsec/modsecurity.conf
-show_package varnish-plus-waf
 
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
 run systemctl cat vac
-show_package vac
 
 mycat /var/log/mongodb/mongodb.log
 
@@ -609,8 +588,6 @@ run systemctl cat vstatdprobe.service
 # new vcs names
 run systemctl cat vcs.service
 run systemctl cat vcs-agent.service
-show_package varnish-custom-statistics
-show_package varnish-custom-statistics-probe
 
 mycat /etc/hosts
 mycat /etc/resolv.conf
