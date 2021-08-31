@@ -165,7 +165,7 @@ get_pid () {
 
 vadmin() {
 	if [ ! -z "${VARNISHADMARG}" ]; then
-		run varnishadm ${VARNISHADMARG} -- $* 2>/dev/null
+		run varnishadm ${VARNISHADMARG} -- "$@" 2>/dev/null
 	fi
 }
 
