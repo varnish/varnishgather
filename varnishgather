@@ -476,6 +476,8 @@ show_packages \
 	mongodb \
 	'*jemalloc*' \
 	'*pcre*' \
+	'*openssl*'\
+	'*libssl*'\
 	ca-certificates
 
 run systemctl cat \
