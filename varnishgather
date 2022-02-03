@@ -680,6 +680,7 @@ if [ -n "$vcls" ]; then
 fi
 
 vadmin param.show
+vadmin param.show changed
 case "$VARNISH" in
 *-2.*)
 	vadmin purge.list;;
