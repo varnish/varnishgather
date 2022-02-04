@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.91
+VERSION=1.92
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -311,8 +311,8 @@ upload() {
 			# Generate BIN name
 			BIN=$(head /dev/urandom | tr -dc a-z0-9 | head -c16)-T$UPLOAD
 			TGZ="varnishgather.${ID}.tar.gz"
-			CURLSTATUS=$(curl --data-binary "@$TGZ" $FILEBIN \
-				-H "bin: ${BIN}" -H "filename: $TGZ" \
+			URL="${FILEBIN}/${BIN}/${TGZ}"
+			CURLSTATUS=$(curl --data-binary "@$TGZ" $URL \
 				--progress-bar --silent --output /dev/null \
 				--connect-timeout 60 --max-time 1800 \
 				--write-out '%{http_code}')
