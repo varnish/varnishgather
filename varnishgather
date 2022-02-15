@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.92
+VERSION=1.93
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -454,6 +454,7 @@ runpipe "netstat -np" "wc -l"
 runpipe "netstat -np" "grep ESTABLISHED" "wc -l"
 run uptime
 run free -m
+runpipe "ps axo pid,user,pmem,vsz,rss,exe,comm k -pmem" "head -n 11"
 run vmstat -w 1 3
 run mpstat -P ALL 1 3
 run iostat 1 3
