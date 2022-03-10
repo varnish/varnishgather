@@ -483,6 +483,8 @@ run getenforce
 runpipe "semodule -l" "grep varnish"
 runpipe "semodule -lfull" "grep varnish"
 runpipe "ausearch --context varnish --raw" "audit2allow"
+runpipe "semanage fcontext -l" "grep varnish"
+run semodule_unpackage /usr/share/selinux/targeted/varnish-plus.pp /dev/null /dev/stdout
 run umask
 
 show_packages \
