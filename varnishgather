@@ -356,6 +356,17 @@ _EOF_
 ##############################
 # Proper execution starts here
 ##############################
+get_vcs_status(){
+	vcs_port=$(systemctl status vcs | grep -Po "connected\sto\s.*?\:[0-9]*" | awk '{print $3}')
+	vcs_authfile=$(systemctl show -p ExecStart vcs.service | grep -Po "\-K\s.*?\s" | awk '{print $2}')
+
+	if [ -z "$vcs_authfile" ]; then
+        curl -s $vcs_port"/status"
+	else
+		credentials=$(cat $vcs_authfile)
+		curl -s -u $credentials $vcs_port"/status"
+	fi
+}
 
 while getopts hpn:S:T:u: opt
 do
@@ -599,6 +610,7 @@ mycat /etc/nsswitch.conf
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
 run find /var/lib/varnish-agent -ls
+run get_vcs_status
 
 # lsof
 for pid in ${PID_ALL_VARNISHD}; do
