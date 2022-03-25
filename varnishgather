@@ -176,11 +176,13 @@ vadmin_getvcls() {
 }
 
 findvcls() {
+	vcl_paths=$(ps aux | grep varnish | grep -Po "\-f.*?vcl" | grep -o "\/.*vcl")
 	base_vcls=$(find /etc/varnish -name '*vcl' 2>/dev/null)
 	[ -z "${base_vcls}" ] && return
 	include_vcls=$(sed -n 's@^\s*include\s*"\([^\\"]\+\)"\s*;.*@\1@p' ${base_vcls})
+	include_vcls=$include_vcls" "$(sed -n 's@^\s*include\s*"\([^\\"]\+\)"\s*;.*@\1@p' ${vcl_paths})
 
-	vcls=$(for file in $include_vcls ${base_vcls}; do
+	vcls=$(for file in $include_vcls ${base_vcls} ${vcl_paths}; do
 		is_absolute=$(echo $file | sed -e '/^\//!d')
 		if [ -z "$is_absolute" ]; then
 			file="/etc/varnish/$file"
