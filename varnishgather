@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.93
+VERSION=1.94
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -313,6 +313,7 @@ upload() {
 			TGZ="varnishgather.${ID}.tar.gz"
 			URL="${FILEBIN}/${BIN}/${TGZ}"
 			CURLSTATUS=$(curl --data-binary "@$TGZ" $URL \
+				--header "Varnishgather: ${VERSION}" \
 				--progress-bar --silent --output /dev/null \
 				--connect-timeout 60 --max-time 1800 \
 				--write-out '%{http_code}')
