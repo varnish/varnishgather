@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.94
+VERSION=1.95
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -310,7 +310,13 @@ upload() {
 			FILEBIN="https://filebin.varnish-software.com"
 			# Generate BIN name
 			BIN=$(head /dev/urandom | tr -dc a-z0-9 | head -c16)-T$UPLOAD
-			TGZ="varnishgather.${ID}.tar.gz"
+			TGZ="varnish-doestnotexist-gather.${ID}.tar.gz"
+			if test ! -f ${TGZ}
+			then
+				echo "Error: The file ${TGZ} does not exist. No file to upload."
+				return 1
+			fi
+
 			URL="${FILEBIN}/${BIN}/${TGZ}"
 			CURLSTATUS=$(curl --data-binary "@$TGZ" $URL \
 				--header "Varnishgather: ${VERSION}" \
