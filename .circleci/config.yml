@@ -34,12 +34,14 @@ jobs:
           root: ./
           paths:
             - gathers
-  collect:
+  test:
     docker:
-      - image: cimg/python
+      - image: cimg/python:3.9.2
     steps:
       - checkout
-      - run: python -m unittest tests
+      - attach_workspace:
+          at: ./gathers
+      - run: python tests.py "gathers"
 
 workflows:
   test:
@@ -53,5 +55,5 @@ workflows:
                   "centos:7", "centos:8",
                   "rockylinux:8"
                ]
-      - collect:
+      - test:
           requires: ["gather"]
