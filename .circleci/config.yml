@@ -3,17 +3,26 @@ version: 2.1
 jobs:
   gather:
     parameters:
-      distro:
+      platform:
         type: string
-        default: "debian:bullseye"
     docker:
-      - image: <<parameters.distro>>
+      - image: <<parameters.platform>>
     steps:
       - checkout
+      # Docker based images by default do not have lsmod or modprobe.
+      # We need to install kmod so that the varnishgather can run in a container.
+      - run: |
+          if command -v apt-get > /dev/null; then
+            apt update -y
+            apt install -y kmod
+          else
+            yum update -y
+            yum install -y kmod
+          fi
       - run: ./varnishgather
       - run: |
-          mkdir -p gathers/<<parameters.distro>>
-          mv *.tar.gz gathers/<<parameters.distro>>/
+          mkdir -p gathers/<<parameters.platform>>
+          mv *.tar.gz gathers/<<parameters.platform>>/
       - persist_to_workspace:
           root: ./
           paths:
@@ -31,7 +40,7 @@ workflows:
       - gather:
           matrix:
             parameters:
-               distro: [
+               platform: [
                   "debian:jessie", "debian:bullseye", "debian:buster", "debian:stretch",
                   "ubuntu:trusty", "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
                   "centos:6","centos:7", "centos:8",
