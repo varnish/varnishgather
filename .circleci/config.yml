@@ -31,6 +31,11 @@ workflows:
       - gather:
           matrix:
             parameters:
-               distro: ["debian:bullseye", "debian:buster", "debian:stretch"]
+               distro: [
+                  "debian:jessie", "debian:bullseye", "debian:buster", "debian:stretch",
+                  "ubuntu:trusty", "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
+                  "centos:6","centos:7", "centos:8",
+                  "rockylinux:8"
+               ]
       - collect:
           requires: ["gather"]
