@@ -1,0 +1,36 @@
+version: 2.1
+
+jobs:
+  gather:
+    parameters:
+      distro:
+        type: string
+        default: "debian:bullseye"
+    docker:
+      - image: <<parameters.distro>>
+    steps:
+      - checkout
+      - run: ./varnishgather
+      - run: |
+          mkdir -p gathers/<<parameters.distro>>
+          mv *.tar.gz gathers/<<parameters.distro>>/
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - gathers
+  collect:
+    docker:
+      - image: cimg/python
+    steps:
+      - checkout
+      - run: python -m unittest tests
+
+workflows:
+  test:
+    jobs:
+      - gather:
+          matrix:
+            parameters:
+               distro: ["debian:bullseye", "debian:buster", "debian:stretch"]
+      - collect:
+          requires: ["gather"]
