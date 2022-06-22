@@ -13,27 +13,29 @@ jobs:
       - checkout
       # Docker based images by default do not have lsmod or modprobe.
       # We need to install kmod so that the varnishgather can run in a container.
-      - run: |
-          if ! command -v lsmod &> /dev/null; then
+      - run:
+          name: "Install dependencies"
+          command: |
+            set -e
             if command -v apt-get > /dev/null; then
               apt update -y
-              apt install -y kmod
+              apt install -y kmod curl
               if [ ! -z "<<parameters.install>>" ]; then
                 curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=$PROJECT_PACKAGECLOUD_TOKEN INSTALL=<< parameters.install >> bash
               fi
             else
               yum update -y
-              yum install -y kmod
+              yum install -y kmod curl
             fi
-          fi
-          set -e
       # Why does the varnishgather exit with a non-zero status code, even if
       # it is successfull? For now, I'm ignoring the exit code to make progress
       # on the CircleCi configuration.
       - run: ./varnishgather || true
-      - run: |
-          mkdir -p gathers/<<parameters.platform>>
-          mv *.tar.gz gathers/<<parameters.platform>>/
+      - run:
+          name: "Collect gather"
+          command: |
+            mkdir -p gathers/<<parameters.platform>>
+            mv *.tar.gz gathers/<<parameters.platform>>/
       - persist_to_workspace:
           root: ./
           paths:
