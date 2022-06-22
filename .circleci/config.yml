@@ -5,6 +5,8 @@ jobs:
     parameters:
       platform:
         type: string
+      install:
+        type: string
     docker:
       - image: <<parameters.platform>>
     steps:
@@ -16,12 +18,14 @@ jobs:
             if command -v apt-get > /dev/null; then
               apt update -y
               apt install -y kmod
+              if [ ! -z "<<parameters.install>>" ]; then
+                curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=$PROJECT_PACKAGECLOUD_TOKEN INSTALL=<< parameters.install >> bash
+              fi
             else
               yum update -y
               yum install -y kmod
             fi
           fi
-          set -x
           set -e
       # Why does the varnishgather exit with a non-zero status code, even if
       # it is successfull? For now, I'm ignoring the exit code to make progress
@@ -49,11 +53,15 @@ workflows:
       - gather:
           matrix:
             parameters:
-               platform: [
-                  "debian:jessie", "debian:bullseye", "debian:buster", "debian:stretch",
-                  "ubuntu:trusty", "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
-                  "centos:7", "centos:8",
-                  "rockylinux:8"
-               ]
+              install: [
+                "",
+                "varnish-plus",
+              ]
+              platform: [
+                "debian:jessie", "debian:bullseye", "debian:buster", "debian:stretch",
+                "ubuntu:trusty", "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
+                "centos:7", "centos:8",
+                "rockylinux:8"
+              ]
       - test:
           requires: ["gather"]
