@@ -1,16 +1,13 @@
 version: 2.1
 
-jobs:
-  gather:
+commands:
+  install_dependencies:
     parameters:
-      platform:
+      repo:
         type: string
-      install:
-        type: string
-    docker:
-      - image: <<parameters.platform>>
+      token:
+        type: env_var_name
     steps:
-      - checkout
       # Docker based images by default do not have lsmod or modprobe.
       # We need to install kmod so that the varnishgather can run in a container.
       - run:
@@ -20,19 +17,26 @@ jobs:
             if command -v apt-get > /dev/null; then
               apt update -y
               apt install -y kmod curl
-              if [ ! -z "<<parameters.install>>" ]; then
-                curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=$PROJECT_PACKAGECLOUD_TOKEN INSTALL=<< parameters.install >> bash
-              fi
+              curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> bash
             else
               yum update -y
               yum install -y kmod curl
             fi
+jobs:
+  varnishgather:
+    parameters:
+      platform:
+        type: string
+    docker:
+      - image: <<parameters.platform>>
+    steps:
+      - checkout
       # Why does the varnishgather exit with a non-zero status code, even if
       # it is successfull? For now, I'm ignoring the exit code to make progress
       # on the CircleCi configuration.
       - run: ./varnishgather || true
       - run:
-          name: "Collect gather"
+          name: "Move gather"
           command: |
             mkdir -p gathers/<<parameters.platform>>
             mv *.tar.gz gathers/<<parameters.platform>>/
@@ -52,18 +56,30 @@ jobs:
 workflows:
   test:
     jobs:
-      - gather:
+      - varnishgather:
+          pre-steps:
+            - install_dependencies:
+                repo: "41"
+                token: "PROJECT_PACKAGECLOUD_41_TOKEN"
           matrix:
             parameters:
-              install: [
-                "",
-                "varnish-plus",
-              ]
               platform: [
-                "debian:jessie", "debian:bullseye", "debian:buster", "debian:stretch",
-                "ubuntu:trusty", "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
-                "centos:7", "centos:8",
-                "rockylinux:8"
+                "debian:stretch",
+                "ubuntu:trusty", "ubuntu:xenial",
+                "centos:7"
               ]
+      # - gather:
+      #     name: "gather_60"
+      #     parameters:
+      #       token: "PROJECT_PACKAGECLOUD_60_TOKEN"
+      #       repo: "60"
+      #     matrix:
+      #       parameters:
+      #         platform: [
+      #           "debian:buster", "debian:stretch", "debian:bullseye",
+      #           "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
+      #           "centos:7", "centos:8",
+      #           "rockylinux:8"
+      #         ]
       - test:
-          requires: ["gather"]
+          requires: ["varnishgather"]
