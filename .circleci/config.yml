@@ -62,12 +62,13 @@ workflows:
             - install_dependencies:
                 repo: "41"
                 token: "PROJECT_PACKAGECLOUD_41_TOKEN"
-                install: "varnish-plus varnish-plus-vmods-extra varnish-plus-addon-ssl varnish-agent varnish-plus-ha varnish-custom-statistics-probe varnish-discovery"
+                install: "varnish-plus varnish-plus-vmods-extra varnish-plus-addon-ssl varnish-agent varnish-plus-ha varnish-custom-statistics-probe"
           matrix:
             parameters:
               platform: [
                 "debian:stretch",
-                "ubuntu:trusty", "ubuntu:xenial",
+                # "ubuntu:trusty",
+                "ubuntu:xenial",
                 "centos:7"
               ]
       # - gather:
