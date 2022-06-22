@@ -7,21 +7,22 @@ commands:
         type: string
       token:
         type: env_var_name
+      install:
+        type: string
     steps:
       # Docker based images by default do not have lsmod or modprobe.
       # We need to install kmod so that the varnishgather can run in a container.
       - run:
           name: "Install dependencies"
           command: |
-            set -e
             if command -v apt-get > /dev/null; then
               apt update -y
               apt install -y kmod curl
-              curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> bash
             else
               yum update -y
               yum install -y kmod curl
             fi
+            curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> INSTALL=<<parameters.install>> bash
 jobs:
   varnishgather:
     parameters:
@@ -61,6 +62,7 @@ workflows:
             - install_dependencies:
                 repo: "41"
                 token: "PROJECT_PACKAGECLOUD_41_TOKEN"
+                install: "varnish-plus varnish-plus-vmods-extra varnish-plus-addon-ssl varnish-agent varnish-plus-ha varnish-custom-statistics-probe varnish-discovery"
           matrix:
             parameters:
               platform: [
