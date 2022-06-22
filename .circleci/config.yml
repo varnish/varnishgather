@@ -22,7 +22,7 @@ commands:
               yum update -y
               yum install -y kmod curl
             fi
-            curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> INSTALL=<<parameters.install>> bash
+            curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> INSTALL="<<parameters.install>>" bash
 jobs:
   varnishgather:
     parameters:
