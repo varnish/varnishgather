@@ -30,6 +30,7 @@ class Command(object):
         self.test_class = test_class
 
     def path(self):
+        # todo: regex
         return self.cmd.replace(' ','_').replace('/','_').replace('.','_')
 
     def matches(self, file):
@@ -38,7 +39,7 @@ class Command(object):
         return False
 
     def setup_test_case(self, root, buf):
-        root, platform = root.split('/')
+        platform = root.split('/')[-1]
         testclass = type("%s_%s" % (platform, self.path()), (self.test_class, ),{
             'command': self.cmd,
             'command_path': self.path(),
@@ -75,6 +76,7 @@ def main():
     parser.add_argument('target', type=str)
     args = parser.parse_args()
 
+    # A list of commands that are executed during a varnishgather. 
     commands = [
         'varnishd -V',
         'varnish-agent -V',
@@ -192,6 +194,7 @@ def main():
     for root, dirs, files in os.walk(args.target):
         for file in files:
             if 'varnishgather' not in file:
+                # todo: this could be a failure condition
                 continue
             suite.addTest(TestSuiteGather(root,file,commands))
     runner.run(suite)
