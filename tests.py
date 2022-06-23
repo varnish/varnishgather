@@ -1,12 +1,80 @@
 import os
+import inspect
 import unittest
 import argparse
 import tarfile
 
-# We will run the following suite of tests against a varnishgather that was
-#   generated on a single platform (e.g. debian:bullseye).
-class TestVarnishGather(unittest.TestCase):
-    target_gather = None
+# Generic test class for run commands
+class TestRunCommand(unittest.TestCase):
+    def setUp(self):
+        if self.buf is None:
+            self.skipTest('Command output is not present.')
+
+        self.lines = self.buf.readlines()
+
+    def test_exists(self):
+        self.assertIsNotNone(self.buf)
+
+    def test_banner(self):
+        self.assertTrue(len(self.lines) >= 3)
+        if self.command not in str(self.lines[1]):
+            self.fail("'%s' not in '%s'" % (self.command, self.lines[1]))
+
+class TestRunPipeCommand(unittest.TestCase):
+    def test_exists(self):
+        self.assertIsNotNone(self.buf)
+
+class Command(object):
+    def __init__(self, cmd, test_class=TestRunCommand):
+        self.cmd = cmd
+        self.test_class = test_class
+
+    def path(self):
+        return self.cmd.replace(' ','_').replace('/','_').replace('.','_')
+
+    def matches(self, file):
+        if self.path() in file:
+            return True
+        return False
+
+    def setup_test_case(self, root, buf):
+        root, platform = root.split('/')
+        testclass = type("%s_%s" % (platform, self.path()), (self.test_class, ),{
+            'command': self.cmd,
+            'command_path': self.path(),
+            'buf': buf
+        })
+        return unittest.TestLoader().loadTestsFromTestCase(testclass)
+
+class TestSuiteGather(unittest.TestSuite):
+    def __init__(self, root, gather, commands):
+        super().__init__()
+        self.tar = tarfile.open(os.path.join(root,gather), 'r:*')
+        members = self.tar.getmembers()
+        for c in commands:
+            if type(c) == str:
+                c = Command(c)
+            exists = None
+
+            for i, member in enumerate(members):
+                if c.matches(member.name):
+                    exists = members.pop(i)
+                    break
+
+            buf = None
+            if exists is not None:
+                buf = self.tar.extractfile(exists)
+
+            self.addTest(c.setup_test_case(root, buf))
+
+    def __del__(self):
+        self.tar.close()
+
+def main():
+    parser = argparse.ArgumentParser(description='Test the output of varnishgather')
+    parser.add_argument('target', type=str)
+    args = parser.parse_args()
+
     commands = [
         'varnishd -V',
         'varnish-agent -V',
@@ -25,12 +93,11 @@ class TestVarnishGather(unittest.TestCase):
         'cat /var/log/dmesg',
         'cat /proc/cpuinfo',
         'cat /proc/version',
-        'ps aux',
-        # ['netstat -np','wc -l'],
-        # "netstat -np | grep ESTABLISHED | wc -l"
+        Command('ps aux', test_class=TestRunPipeCommand),
+        Command('netstat -np', test_class=TestRunPipeCommand),
         'uptime',
         'free -m',
-        'ps axo',
+        Command('ps axo', test_class=TestRunPipeCommand),
         'vmstat',
         'mpstat',
         'iostat',
@@ -38,9 +105,9 @@ class TestVarnishGather(unittest.TestCase):
         'cat /etc/redhat-release',
         'sysctl -a',
         'getenforce',
-        'semodule -l'
-        'semodule -lfull',
-        'ausearch --context varnish --raw',
+        Command('semodule -l', test_class=TestRunPipeCommand),
+        Command('semodule -lfull', test_class=TestRunPipeCommand),
+        Command('ausearch --context varnish --raw', test_class=TestRunPipeCommand),
         'umask',
         'systemctl cat',
         'netstat -s',
@@ -120,57 +187,14 @@ class TestVarnishGather(unittest.TestCase):
         'vadnishadm -- backend.list',
         'vadnishadm -- panic.show',
     ]
-
-    def setUp(self):
-        self.tar = tarfile.open(self.target_gather, 'r:*')
-
-    def tearDown(self):
-        self.tar.close()
-
-    def test(self):
-        self.assertIsNotNone(self.tar)
-        members = self.tar.getmembers()
-
-        for command in self.commands:
-            command_path = command.replace(' ','_').replace('/','_').replace('.','_')
-            exists = None
-
-            for member in members:
-                if command_path in member.name:
-                    exists = member
-                    break
-
-            if exists is None:
-                # print("'%s' is not in the gather" % command_path)
-                continue
-
-            # if the output of the command does exist, we can test some things
-            with self.subTest(exists.name):
-                self.assertTrue(exists.isfile())
-                buf = self.tar.extractfile(exists)
-                self.assertIsNotNone(buf)
-                lines = buf.readlines()
-                # a banner should always be present
-                self.assertTrue(len(lines) >= 3)
-                if command not in str(lines[1]):
-                    self.fail("Command banner for '%s' is missing" % command)
-                # todo: expectations for cases, e.g.
-                #   varnishd not running
-                #   varnishlog timeout
-                #   etc...
-
-def main():
-    parser = argparse.ArgumentParser(description='Test the output of varnishgather')
-    parser.add_argument('target', type=str)
-    args = parser.parse_args()
-
+    runner = unittest.TextTestRunner(verbosity=2)
+    suite = unittest.TestSuite()
     for root, dirs, files in os.walk(args.target):
         for file in files:
-            if 'varnishgather' in file:
-                testclass = type('Test_%s' % root.split('/')[-1], (TestVarnishGather, ),
-                    {'target_gather': os.path.join(root,file)})
-                suite = unittest.TestLoader().loadTestsFromTestCase(testclass)
-                unittest.TextTestRunner(verbosity=2).run(suite)
+            if 'varnishgather' not in file:
+                continue
+            suite.addTest(TestSuiteGather(root,file,commands))
+    runner.run(suite)
 
 if __name__ == '__main__':
     main()
