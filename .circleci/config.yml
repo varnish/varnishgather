@@ -52,7 +52,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./gathers
-      - run: python tests.py "gathers"
+      - run: python test.py "gathers"
 
 workflows:
   test:
@@ -67,7 +67,6 @@ workflows:
             parameters:
               platform: [
                 "debian:stretch",
-                # "ubuntu:trusty",
                 "ubuntu:xenial",
                 "centos:7"
               ]

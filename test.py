@@ -1,82 +1,87 @@
 import os
+import re
 import inspect
 import unittest
 import argparse
 import tarfile
+from tests.commands import TestRunCommand, TestRunPipeCommand, TestVarnishAdmCommand
 
-# Generic test class for run commands
-class TestRunCommand(unittest.TestCase):
-    def setUp(self):
-        if self.buf is None:
-            self.skipTest('Command output is not present.')
-
-        self.lines = self.buf.readlines()
-
-    def test_exists(self):
-        self.assertIsNotNone(self.buf)
-
-    def test_banner(self):
-        self.assertTrue(len(self.lines) >= 3)
-        if self.command not in str(self.lines[1]):
-            self.fail("'%s' not in '%s'" % (self.command, self.lines[1]))
-
-class TestRunPipeCommand(unittest.TestCase):
-    def test_exists(self):
-        self.assertIsNotNone(self.buf)
-
-class Command(object):
+class TestCommand(object):
     def __init__(self, cmd, test_class=TestRunCommand):
         self.cmd = cmd
         self.test_class = test_class
 
     def path(self):
-        # todo: regex
-        return self.cmd.replace(' ','_').replace('/','_').replace('.','_')
+        return re.sub(r'[\s\\/\.]', '_', self.cmd)
 
     def matches(self, file):
         if self.path() in file:
             return True
         return False
 
-    def setup_test_case(self, root, buf):
+    def setup_test_case(self, root, log):
         platform = root.split('/')[-1]
-        testclass = type("%s_%s" % (platform, self.path()), (self.test_class, ),{
+        testclass = type("platform(%s), command(%s)" % (platform, self.path()), (self.test_class, ),{
             'command': self.cmd,
             'command_path': self.path(),
-            'buf': buf
+            'log': log
         })
         return unittest.TestLoader().loadTestsFromTestCase(testclass)
 
 class TestSuiteGather(unittest.TestSuite):
-    def __init__(self, root, gather, commands):
+    # For a given varnishgather that was run on a specific platform,
+    #   this test suite will attempt to match each command with the related file.
+    # Each command will have its own test case.
+    # If a command can not be mached with a file, it is up to the test case to
+    #   determine if that is a failure or not.
+    def __init__(self, root, gather, commands, debug=False):
         super().__init__()
+        self._debug("Setting up %s" % gather)
+        self.gather = gather
         self.tar = tarfile.open(os.path.join(root,gather), 'r:*')
+        self.debug = debug
         members = self.tar.getmembers()
         for c in commands:
             if type(c) == str:
-                c = Command(c)
+                self._debug("Initializing command(%s) with defaults." % c)
+                c = TestCommand(c)
+            else:
+                self._debug("Command(%s) already initalized." % c)
             exists = None
 
             for i, member in enumerate(members):
-                if c.matches(member.name):
+                log = member.name.split('/')[-1]
+                if c.matches(log):
+                    self._debug("    Command(%s) matched: %s" % (c.path(), log))
                     exists = members.pop(i)
                     break
 
             buf = None
-            if exists is not None:
+            if exists is None:
+                self._debug("   Unable to match")
+            else:
                 buf = self.tar.extractfile(exists)
+                buf = buf.readlines()
 
             self.addTest(c.setup_test_case(root, buf))
 
     def __del__(self):
+        self._debug("Cleaning up %s" % self.gather)
         self.tar.close()
+
+    def _debug(self, *msg):
+        if self.debug:
+            print("DEBUG: %s" % msg)
 
 def main():
     parser = argparse.ArgumentParser(description='Test the output of varnishgather')
     parser.add_argument('target', type=str)
+    parser.add_argument('--debug', default=False, action="store_true")
     args = parser.parse_args()
 
-    # A list of commands that are executed during a varnishgather. 
+    # A list of commands that are executed during a varnishgather and should be
+    #   tested. Each command will be treated as an individual test suite that
+    #   will default to using the "TestRunCommand" test case.
     commands = [
         'varnishd -V',
         'varnish-agent -V',
@@ -95,11 +100,11 @@ def main():
         'cat /var/log/dmesg',
         'cat /proc/cpuinfo',
         'cat /proc/version',
-        Command('ps aux', test_class=TestRunPipeCommand),
-        Command('netstat -np', test_class=TestRunPipeCommand),
+        'ps aux',
+        'netstat -np',
         'uptime',
         'free -m',
-        Command('ps axo', test_class=TestRunPipeCommand),
+        'ps axo',
         'vmstat',
         'mpstat',
         'iostat',
@@ -107,9 +112,9 @@ def main():
         'cat /etc/redhat-release',
         'sysctl -a',
         'getenforce',
-        Command('semodule -l', test_class=TestRunPipeCommand),
-        Command('semodule -lfull', test_class=TestRunPipeCommand),
-        Command('ausearch --context varnish --raw', test_class=TestRunPipeCommand),
+        'semodule -l',
+        'semodule -lfull',
+        'ausearch --context varnish --raw',
         'umask',
         'systemctl cat',
         'netstat -s',
@@ -180,14 +185,14 @@ def main():
         'find /var/lib/varnish-agent -ls',
         'lsblk',
         'lspci -v -nn -k',
-        'vadnishadm -- vcl.list',
-        'vadnishadm -- param.show',
-        'vadnishadm -- param.show changed',
-        'vadnishadm -- purge.list',
-        'vadnishadm -- ban.list',
-        'vadnishadm -- debug.health',
-        'vadnishadm -- backend.list',
-        'vadnishadm -- panic.show',
+        TestCommand('varnishadm -- vcl.list', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- param.show', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- param.show changed', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- purge.list', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- ban.list', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- debug.health', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- backend.list', test_class=TestVarnishAdmCommand),
+        TestCommand('varnishadm -- panic.show', test_class=TestVarnishAdmCommand)
     ]
     runner = unittest.TextTestRunner(verbosity=2)
     suite = unittest.TestSuite()
@@ -196,7 +201,7 @@ def main():
             if 'varnishgather' not in file:
                 # todo: this could be a failure condition
                 continue
-            suite.addTest(TestSuiteGather(root,file,commands))
+            suite.addTest(TestSuiteGather(root,file,commands,debug=args.debug))
     runner.run(suite)
 
 if __name__ == '__main__':
