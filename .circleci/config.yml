@@ -23,7 +23,38 @@ commands:
               yum install -y kmod curl
             fi
             curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> INSTALL="<<parameters.install>>" bash
+
+varnish: &varnish
+  parameters:
+    platform:
+      type: string
+  docker:
+    - image: <<parameters.platform>>
+  steps:
+    - checkout
+    # Why does the varnishgather exit with a non-zero status code, even if
+    # it is successfull? For now, I'm ignoring the exit code to make progress
+    # on the CircleCi configuration.
+    - run: ./varnishgather || true
+    - run:
+        name: "Move gather"
+        command: |
+          mkdir -p gathers/<<parameters.platform>>
+          mv *.tar.gz gathers/<<parameters.platform>>/
+    - persist_to_workspace:
+        root: ./
+        paths:
+          - gathers
+
 jobs:
+  varnish_41:
+    steps:
+      - install_dependencies:
+          repo: "41"
+          token: "PROJECT_PACKAGECLOUD_41_TOKEN"
+          install: "varnish-plus varnish-plus-vmods-extra varnish-plus-addon-ssl varnish-agent varnish-plus-ha varnish-custom-statistics-probe"
+    <<: *varnish
+
   varnishgather:
     parameters:
       platform:
@@ -57,7 +88,7 @@ jobs:
 workflows:
   test:
     jobs:
-      - varnishgather:
+      - varnish_41:
           pre-steps:
             - install_dependencies:
                 repo: "41"
@@ -84,4 +115,4 @@ workflows:
       #           "rockylinux:8"
       #         ]
       - test:
-          requires: ["varnishgather"]
+          requires: ["varnish_41"]

@@ -36,10 +36,10 @@ class TestSuiteGather(unittest.TestSuite):
     #   determine if that is a failure or not.
     def __init__(self, root, gather, commands, debug=False):
         super().__init__()
-        self._debug("Setting up %s" % gather)
         self.gather = gather
         self.tar = tarfile.open(os.path.join(root,gather), 'r:*')
         self.debug = debug
+        self._debug("Setting up %s" % gather)
         members = self.tar.getmembers()
         for c in commands:
             if type(c) == str:
