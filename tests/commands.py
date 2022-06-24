@@ -23,5 +23,6 @@ class TestVarnishAdmCommand(TestBase, unittest.TestCase):
 
         # when varnishadm is not running, we still expect the the varnishadm
         #   interface to return a stateful message.
-        if 'Could not get hold of varnishd, is it running?' not in str(self.log[-1]):
-            self.fail("Expected Varnishadm to provide a status message.")
+        status = 'Could not get hold of varnishd, is it running?'
+        if status not in str(self.log[-1]):
+            self.fail("'%s' not in '%s'" % (status, self.log[-1]))
