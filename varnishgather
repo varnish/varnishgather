@@ -106,7 +106,7 @@ run() {
 pack_vcls() {
 	incr
 	taskecho "Compressing VCLs"
-	tar cf "$DIR/$(item_num)_vcls.tar" $(findvcls) >>"$LOG" 2>&1
+	tar cf "$DIR/$(item_num)_vcls.tar" $(vcl_find) >>"$LOG" 2>&1
 }
 
 runpipe_recurse() {
@@ -175,23 +175,40 @@ vadmin_getvcls() {
 	fi
 }
 
-findvcls() {
-	base_vcls=$(find /etc/varnish -name '*vcl' 2>/dev/null)
-	[ -z "${base_vcls}" ] && return
-	include_vcls=$(sed -n 's@^\s*include\s*"\([^\\"]\+\)"\s*;.*@\1@p' ${base_vcls})
+vcl_find_path() {
+	if [ ! -z "${VARNISHADMARG}" ]; then
+		varnishadm ${VARNISHADMARG} param.show vcl_path 2>/dev/null |
+		awk '/Value is:/ { print $3 }' |
+		tr : '\n'
+	fi
+	echo /etc/varnish
+}
 
-	vcls=$(for file in $include_vcls ${base_vcls}; do
-		is_absolute=$(echo $file | sed -e '/^\//!d')
-		if [ -z "$is_absolute" ]; then
-			file="/etc/varnish/$file"
-		fi
+vcl_find_includes() {
+	vcl=$1
+	printf '%s\n' "$vcl"
+	sed 's/[;]/;\n/g' 2>/dev/null <"$vcl" |
+	awk -F'"' '/\yinclude\s+"[^"]+"\s*;/ { print $2 }' |
+	while read vcl_inc
+	do
+		# TODO: technically, relative includes fall back to vcl_path
+		test -n "${vcl_inc%%/*}" &&
+		vcl_inc="$(dirname "$vcl")/$vcl_inc"
+		vcl_find_includes "$vcl_inc"
+	done
+}
 
-		if [ -e "$file" ]; then
-			echo $file;
-		fi
-	done | sort | uniq)
-
-	echo $vcls
+vcl_find() {
+	vcl_find_path |
+	sort |
+	uniq |
+	xargs -I {} find {} -name '*.vcl' -type f |
+	while read vcl
+	do
+		vcl_find_includes "$vcl"
+	done |
+	sort |
+	uniq
 }
 
 findmodsec() {
@@ -635,7 +652,7 @@ if  (lsmod | grep ip6_tables > /dev/null); then
 fi
 
 # VCLs
-for a in $(findvcls); do
+for a in $(vcl_find); do
 	mycat $a
 done
 
