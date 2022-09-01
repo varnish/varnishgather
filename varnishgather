@@ -358,6 +358,24 @@ call_ethtool() {
 	LOG="$OLDLOG"
 }
 
+coredumpctl_run() {
+	# list all coredumps on the system for Varnish (last 2 week)
+	run timeout -s TERM 5 coredumpctl --since=-2w list varnishd cache-main
+
+	# detailed information of each coredump of Varnish (last 2 week)
+	run timeout -s TERM 5 coredumpctl --since=-2w info varnishd cache-main
+
+	# backtrace of the most recent crash of Varnish
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'bt full'" gdb varnishd
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'bt full'" gdb cache-main
+
+	# backtrace of the most recent crash of all threads of the Varnish worker process
+	# Unfortunately, the core file does not contain the name of each thread
+	# from /proc/<pid>/task/<tid>/comm . This means GDB is not able to show the
+	# name of the running threads from the core file.
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'thread apply all bt'" gdb cache-main
+}
+
 upload_fail() {
 	warn "$1"
 	echo "==============================================================================="
@@ -867,6 +885,8 @@ if [ -f /etc/rc.local ]; then
 fi
 
 run lspci -vv -nn -k
+
+coredumpctl_run
 
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
