@@ -184,16 +184,26 @@ vcl_find_path() {
 	echo /etc/varnish
 }
 
+vcl_already_found() {
+	cat $TOPDIR/vcl_files.txt $TOPDIR/vcl_includes.txt |
+	grep -Fx "$1"
+}
+
 vcl_find_includes() {
 	vcl=$1
-	printf '%s\n' "$vcl"
+
+	vcl_already_found "$vcl" ||
+	printf '%s\n' "$vcl" >>$TOPDIR/vcl_includes.txt
+
 	sed 's/[;]/;\n/g' 2>/dev/null <"$vcl" |
 	awk -F'"' '/\yinclude\s+"[^"]+"\s*;/ { print $2 }' |
 	while read vcl_inc
 	do
-		# TODO: technically, relative includes fall back to vcl_path
+		# TODO: technically, relative includes can fall back to vcl_path
 		test -n "${vcl_inc%%/*}" &&
 		vcl_inc="$(dirname "$vcl")/$vcl_inc"
+
+		vcl_already_found "$vcl_inc" ||
 		vcl_find_includes "$vcl_inc"
 	done
 }
@@ -202,13 +212,19 @@ vcl_find() {
 	vcl_find_path |
 	sort |
 	uniq |
-	xargs -I {} find {} -name '*.vcl' -type f |
+	xargs -I {} find {} -name '*.vcl' -type f >$TOPDIR/vcl_files.txt
+
+	touch $TOPDIR/vcl_includes.txt
 	while read vcl
 	do
 		vcl_find_includes "$vcl"
-	done |
+	done <$TOPDIR/vcl_files.txt
+
+	cat $TOPDIR/vcl_files.txt $TOPDIR/vcl_includes.txt |
 	sort |
 	uniq
+
+	rm -f $TOPDIR/vcl_files.txt $TOPDIR/vcl_includes.txt
 }
 
 findmodsec() {
