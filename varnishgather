@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.95
+VERSION=1.96
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -598,6 +598,7 @@ mycat /proc/meminfo
 mycat /proc/crypto
 mycat /proc/sys/net/ipv4/tcp_tw_reuse
 for pid in ${PID_VARNISHD}; do
+	run cat -v /proc/$pid/cmdline
 	mycat /proc/$pid/cgroup
 done
 show_limits
