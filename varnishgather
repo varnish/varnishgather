@@ -504,6 +504,7 @@ run sysctl -a
 run getenforce
 runpipe "semodule -l" "grep varnish"
 runpipe "semodule -lfull" "grep varnish"
+run ausearch --context varnish
 runpipe "ausearch --context varnish --raw" "audit2allow"
 runpipe "semanage fcontext -l" "grep varnish"
 run semodule_unpackage /usr/share/selinux/targeted/varnish-plus.pp /dev/null /dev/stdout
