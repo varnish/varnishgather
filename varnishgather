@@ -484,6 +484,7 @@ run varnish-controller-api-gw -version
 run varnish-controller-ui -version
 run date
 run dmesg
+run dmesg -T
 run hostname
 mycat /etc/hostname
 mycat /var/log/dmesg
