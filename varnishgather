@@ -645,6 +645,7 @@ mycat /etc/nsswitch.conf
 run find /usr/local -name varnish
 run find /var/lib/varnish -ls
 run find /var/lib/varnish-agent -ls
+run find /var/lib/varnish-controller -ls
 
 # lsof
 for pid in ${PID_ALL_VARNISHD}; do
