@@ -587,6 +587,13 @@ do
 	mycat "$arg"
 done
 
+# -A tls.cfg file
+for arg in $(IFS="
+" foreacharg -A)
+do
+	mycat "$arg"
+done
+
 mycat /etc/varnish/nats.conf
 
 mycat /etc/sysconfig/varnish
