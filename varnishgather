@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.100
+VERSION=1.101
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -297,7 +297,7 @@ show_packages() {
 }
 
 show_limits() {
-	file="/proc/$(echo $PID_VARNISHD | awk '{print $1;}')/limits"
+	file="/proc/$1/limits"
 
 	incr
 
@@ -608,8 +608,14 @@ mycat /proc/sys/net/ipv4/tcp_tw_reuse
 for pid in ${PID_VARNISHD}; do
 	run cat -v /proc/$pid/cmdline
 	mycat /proc/$pid/cgroup
+	show_limits $pid
 done
-show_limits
+
+for file in /etc/security/limits.conf /etc/security/limits.d/*.conf
+do
+	test -f $file || continue
+	mycat $file
+done
 
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
