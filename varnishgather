@@ -370,6 +370,25 @@ upload() {
 	fi
 }
 
+encrypt() {
+	if command -v openssl >/dev/null
+	then
+		# Encrypt the gather with the Varnish Software public key
+		openssl s_client -showcerts -connect filebin.varnish-software.com:443 </dev/null 2>/dev/null | openssl x509 -outform PEM > $TOPDIR/cert.pem
+		# CBC is practical for encrypting local files that don't need random access.
+		openssl smime -encrypt -binary -aes-256-cbc -in $TGZ -out $TGZ.enc -outform DER $TOPDIR/cert.pem
+		echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+		echo "Encrypted varnishgather with AES-256"
+		echo "Before: $TGZ"
+		echo "After: $TGZ.enc"
+		echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+		# set the tgz reference to use the encypted gather
+		TGZ="${TGZ}.enc"
+	else
+		echo "Unable to encrypt"
+	fi
+}
+
 usage() {
 	cat <<_EOF_
 Usage: $0 [-n name] [-T host:port] [-S secretfile] [-h]
@@ -383,6 +402,7 @@ Varnishgather gathers various system information into a single tar-ball.
  -u <identifier>      Upload generated varnishgather to filebin to
                       filebin.varnish-software.com, curl needed.
  -p                   Perform a perf capture.
+ -e                   Encrypt the generated varnishgather.
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
@@ -397,11 +417,12 @@ _EOF_
 # Proper execution starts here
 ##############################
 
-while getopts hpn:S:T:u: opt
+while getopts hpen:S:T:u: opt
 do
 	case $opt in
 	u) UPLOAD=$OPTARG ;;
 	p) PERF="TRUE" ;;
+	e) ENCRYPT="TRUE" ;;
 	n)
 		NAME="-n $OPTARG"
 		ID="$ID-$(n_opt "$OPTARG")"
@@ -596,7 +617,6 @@ do
 done
 
 mycat /etc/varnish/nats.conf
-
 mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
 mycat /sys/kernel/mm/transparent_hugepage/enabled
@@ -617,23 +637,18 @@ mycat /etc/init.d/vha-agent
 mycat /etc/vha-agent/nodes.conf
 mycat /etc/varnish/nodes.conf
 mycat /var/lib/vha-agent/vha-status
-
 mycat /etc/sysconfig/varnish-agent
 mycat /etc/default/varnish-agent
 mycat /etc/init.d/varnish-agent
 mycat /var/lib/varnish-agent/agent.param
 mycat /var/lib/varnish-agent/boot.vcl
 mycat /etc/varnish/varnish-agent.params
-
 mycat /etc/hitch/hitch.conf
-
 mycat /etc/varnish/modsec/modsecurity.conf
-
 mycat /etc/init.d/vac
 mycat /opt/vac/etc/defaults
 mycat /var/opt/vac/log/vac-stderr.log
 mycat /var/opt/vac/log/vac.log
-
 mycat /var/log/mongodb/mongodb.log
 
 # old vcs names
@@ -804,6 +819,11 @@ run lspci -v -nn -k
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
 tar czf "$TGZ" -C "$TOPDIR" "$RELDIR"
+
+if [ "$ENCRYPT" = "TRUE" ]
+then
+	encrypt
+fi
 
 if [ -n "$UPLOAD" ]; then
 	upload
