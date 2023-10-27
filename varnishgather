@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.101
+VERSION=1.102
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -601,6 +601,18 @@ mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
+mycat /proc/diskstats
+mycat /proc/interrupts
+mycat /proc/pressure/cpu
+mycat /proc/pressure/memory
+mycat /proc/pressure/io
+mycat /proc/softirqs
+mycat /proc/stat
+mycat /proc/vmstat
+mycat /proc/vmallocinfo
+mycat /proc/net/dev
+mycat /proc/net/sockstat
+mycat /proc/net/sockstat6
 mycat /proc/user_beancounters
 mycat /proc/meminfo
 mycat /proc/crypto
