@@ -138,6 +138,14 @@ runpipe() {
 	LOG="$OLDLOG"
 }
 
+capturelog() {
+	if [ -r $1 ]; then
+		run egrep -ai "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$1"
+	else
+		incr
+	fi
+}
+
 mycat() {
 	if [ -r $1 ]; then
 		run cat $1
@@ -670,14 +678,14 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
-
-for a in /var/log/messages /var/log/syslog; do
-	if [ -r "$a" ]; then
-		run egrep -i "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$a"
-	else
-		incr
-	fi
-done
+capturelog /var/log/messages
+capturelog /var/log/syslog
+capturelog /var/log/debug
+capturelog /var/log/kern.log
+capturelog /var/log/dpkg.log
+capturelog /var/log/yum.log
+capturelog /var/log/dnf.log
+capturelog /var/log/user.log
 
 # ip tables
 if  (lsmod | grep ip_tables > /dev/null); then
