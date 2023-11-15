@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.100
+VERSION=1.101
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -136,6 +136,21 @@ runpipe() {
 	banner $(pipeprint "$@")
 	runpipe_recurse "$@" >> ${LOG} 2>&1
 	LOG="$OLDLOG"
+}
+
+capturelog() {
+	if [ -r $1 ]; then
+		run egrep -ai "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$1"
+		for a in $(echo $1* | cut -d' ' -f2-3); do
+			if [ -r "$a" ]; then
+				run zgrep -ai "(broadcaster\|varnish\|vha-agent\|hitch\|vac\|rc.local\|varnish-controller\|vcs)" "$a"
+			else
+				incr
+			fi
+		done
+	else
+		incr
+	fi
 }
 
 mycat() {
@@ -670,14 +685,14 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
-
-for a in /var/log/messages /var/log/syslog; do
-	if [ -r "$a" ]; then
-		run egrep -i "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$a"
-	else
-		incr
-	fi
-done
+capturelog /var/log/messages
+capturelog /var/log/syslog
+capturelog /var/log/debug
+capturelog /var/log/kern.log
+capturelog /var/log/dpkg.log
+capturelog /var/log/yum.log
+capturelog /var/log/dnf.log
+capturelog /var/log/user.log
 
 # ip tables
 if  (lsmod | grep ip_tables > /dev/null); then
