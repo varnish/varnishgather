@@ -694,6 +694,19 @@ capturelog /var/log/yum.log
 capturelog /var/log/dnf.log
 capturelog /var/log/user.log
 
+run journalctl -u varnish.service
+run journalctl -u varnish-agent.service
+run journalctl -u varnish-controller-agent.service
+run journalctl -u varnish-controller-api-gw.service
+run journalctl -u varnish-controller-brainz.service
+run journalctl -u varnish-controller-nats.service
+run journalctl -u varnish-controller-ui.service
+run journalctl -u vcs.service
+run journalctl -u vcs-agent.service
+run journalctl -u vstatd.service
+run journalctl -u vstatdprobe.service
+run journalctl -u vac.service
+
 # ip tables
 if  (lsmod | grep ip_tables > /dev/null); then
 	run iptables-save
