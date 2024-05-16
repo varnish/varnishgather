@@ -351,7 +351,7 @@ upload() {
 			fi
 
 			URL="${FILEBIN}/${BIN}/${TGZ}"
-			CURLSTATUS=$(curl --data-binary "@$TGZ" $URL \
+			CURLSTATUS=$(curl -X POST --upload-file "$TGZ" $URL \
 				--header "Varnishgather: ${VERSION}" \
 				--progress-bar --silent --output /dev/null \
 				--connect-timeout 60 --max-time 1800 \
