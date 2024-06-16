@@ -138,6 +138,14 @@ runpipe() {
 	LOG="$OLDLOG"
 }
 
+capturelog() {
+	if [ -r $1 ]; then
+		run egrep -i "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$1"
+	else
+		incr
+	fi
+}
+
 mycat() {
 	if [ -r $1 ]; then
 		run cat $1
@@ -670,14 +678,35 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
+capturelog /var/log/messages
+capturelog /var/log/syslog
+capturelog /var/log/debug
+capturelog /var/log/kern.log
+capturelog /var/log/dpkg.log
+capturelog /var/log/yum.log
+capturelog /var/log/dnf.log
+capturelog /var/log/user.log
 
-for a in /var/log/messages /var/log/syslog; do
-	if [ -r "$a" ]; then
-		run egrep -i "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$a"
-	else
-		incr
-	fi
-done
+run journalctl --since=-1w -u vac.service
+run journalctl --since=-1w -u varnish.service
+run journalctl --since=-1w -u varnish-agent.service
+run journalctl --since=-1w -u varnish-controller-agent.service
+run journalctl --since=-1w -u varnish-controller-api-gw.service
+run journalctl --since=-1w -u varnish-controller-brainz.service
+run journalctl --since=-1w -u varnish-controller-nats.service
+run journalctl --since=-1w -u varnish-controller-ui.service
+run journalctl --since=-1w -u varnish-controller-router.service
+run journalctl --since=-1w -u varnish-discovery.service
+run journalctl --since=-1w -u varnish-traffic-router.service
+run journalctl --since=-1w -u vcs.service
+run journalctl --since=-1w -u vcs-agent.service
+run journalctl --since=-1w -u vstatd.service
+run journalctl --since=-1w -u vstatdprobe.service
+
+run journalctl --since=-1h -u broadcaster.service
+run journalctl --since=-1h -u varnishlog-errors.service
+run journalctl --since=-1h -u varnishncsa.service
+run journalctl --since=-1h -u vha-agent.service
 
 # ip tables
 if  (lsmod | grep ip_tables > /dev/null); then
