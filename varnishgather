@@ -428,6 +428,14 @@ done
 
 shift $((OPTIND - 1))
 
+if [ -z "$NAME" ]; then
+	VARNISHD_CMD=$(ps -o cmd= -p $(pgrep varnishd))
+	if echo "$VARNISHD_CMD" | grep -q '\-n'; then
+		INSTANCE_NAME=$(echo "$VARNISHD_CMD" | grep -oP '(?<=-n )\S+')
+		NAME="-n $INSTANCE_NAME"
+	fi
+fi
+
 if [ $# -gt 0 ]
 then
 	info "Unknown argument: $1"
