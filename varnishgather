@@ -85,9 +85,9 @@ taskecho() {
 }
 
 banner() {
-	log "--------------------------------"
-	log "Item $ITEM: $*"
-	log "--------------------------------"
+	log "# --------------------------------"
+	log "# Item $ITEM: $*"
+	log "# --------------------------------"
 	taskecho "$*"
 }
 
@@ -801,6 +801,8 @@ run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 if [ "$PERF" = "TRUE" ]
 then
 	run timeout -s TERM 5 perf record -F 99 -p ${PID_ALL_VARNISHD_COMMA} -g
+	run timeout -s TERM 5 perf report -g
+	run timeout -s TERM 5 perf script
 fi
 
 if [ -d "/etc/api-engine" ]; then
