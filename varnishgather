@@ -329,6 +329,27 @@ call_blockdev() {
 	LOG="$OLDLOG"
 }
 
+ethtool_run() {
+	log ""
+	log "# ethtool $1 $2"
+	log ""
+	ethtool $1 $2 >> $LOG 2>&1
+}
+
+call_ethtool() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_ethtool_$(logname "$1")"
+	banner "ethtool $1"
+	ethtool_run -S $1
+	ethtool_run -a $1
+	ethtool_run -c $1
+	ethtool_run -k $1
+	ethtool_run -g $1
+	LOG="$OLDLOG"
+}
+
 upload_fail() {
 	warn "$1"
 	echo "==============================================================================="
@@ -682,6 +703,9 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
+for f in /sys/class/net/*; do
+	call_ethtool "$(basename $f)"
+done
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
