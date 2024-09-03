@@ -337,6 +337,27 @@ call_blockdev() {
 	LOG="$OLDLOG"
 }
 
+ethtool_run() {
+	log ""
+	log "# ethtool $1 $2"
+	log ""
+	ethtool $1 $2 >> $LOG 2>&1
+}
+
+call_ethtool() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_ethtool_$(logname "$1")"
+	banner "ethtool $1"
+	ethtool_run -S $1
+	ethtool_run -a $1
+	ethtool_run -c $1
+	ethtool_run -k $1
+	ethtool_run -g $1
+	LOG="$OLDLOG"
+}
+
 upload_fail() {
 	warn "$1"
 	echo "==============================================================================="
@@ -698,6 +719,10 @@ capturelog /var/log/dpkg.log
 capturelog /var/log/yum.log
 capturelog /var/log/dnf.log
 capturelog /var/log/user.log
+
+for f in /sys/class/net/*; do
+	call_ethtool "$(basename $f)"
+done
 
 run journalctl --since=-1w -u vac.service
 run journalctl --since=-1w -u varnish.service
