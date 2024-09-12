@@ -309,6 +309,23 @@ show_limits() {
 	LOG="$OLDLOG"
 }
 
+show_cgroup() {
+	cgroup_files=$(find /sys/fs/cgroup -type f 2>/dev/null | sort)
+	[ -z "${cgroup_files}" ] && return
+
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_cgroups"
+	banner cgroup
+	for file in $cgroup_files; do
+		echo >>${LOG} "$file:"
+		cat "$file" >> ${LOG} 2>&1
+	done
+
+	LOG="$OLDLOG"
+}
+
 blockdev_cat() {
 	echo -n >>${LOG} "$1:"
 	cat "$1" >> ${LOG} 2>&1
@@ -610,6 +627,7 @@ for pid in ${PID_VARNISHD}; do
 	mycat /proc/$pid/cgroup
 done
 show_limits
+show_cgroup
 
 mycat /etc/sysconfig/vha-agent
 mycat /etc/default/vha-agent
