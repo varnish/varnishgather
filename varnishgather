@@ -170,7 +170,7 @@ vadmin() {
 }
 
 get_varnishd_instances() {
-    ps -eo cmd | grep '[v]arnishd' | grep -oP '(?<=-n )\S+' | sort | uniq
+    ps -eo cmd | grep '[v]arnishd' | grep -oP '(?<=-n )\S+' | sort -u
 }
 
 vadmin_getvcls() {
