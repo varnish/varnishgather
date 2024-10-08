@@ -169,8 +169,8 @@ vadmin() {
 	fi
 }
 
-get_varnishd_instances() {
-    ps -eo cmd | grep '[v]arnishd' | grep -oP '(?<=-n )\S+' | sort -u
+get_varnishd_instance() {
+    ps -eo cmd | grep '[v]arnishd' | grep -oP '(?<=-n )\S+' | sort -u | head -1
 }
 
 vadmin_getvcls() {
@@ -401,10 +401,6 @@ _EOF_
 	exit $1
 }
 
-suggest_n_values() {
-	get_varnishd_instances
-}
-
 ##############################
 # Proper execution starts here
 ##############################
@@ -441,44 +437,19 @@ done
 shift $((OPTIND - 1))
 
 if [ -z "$NAME" ]; then
-    VARNISHD_CMD=$(ps -o cmd= -p $(pgrep varnishd))
-    INSTANCE_NAME=$(echo "$VARNISHD_CMD" | grep -oP '(?<=-n )\S+')
-
-    if [ -n "$INSTANCE_NAME" ]; then
-        NAME="-n $INSTANCE_NAME"
-    else
-        INSTANCE_NAME=$(suggest_n_values)
-        if [ -n "$INSTANCE_NAME" ]; then
-            NAME="-n $INSTANCE_NAME"
-        fi
-    fi
-
-    if ! validate_instance; then
-        NAME=""
-    fi
+    INSTANCE_NAME=$(get_varnishd_instance)
+    [ -n "$INSTANCE_NAME" ] && NAME="-n $INSTANCE_NAME"
 else
-    if ! validate_instance; then
-        INSTANCE_NAME=$(suggest_n_values)
-        if [ -n "$INSTANCE_NAME" ]; then
-            NAME="-n $INSTANCE_NAME"
-            if validate_instance; then
-                ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')-$(n_opt "$INSTANCE_NAME")"
-                RELDIR="varnishgather-$ID"
-            else
-                NAME=""
-            fi
-        else
-            NAME=""
-        fi
-    fi
+    INSTANCE_NAME="${NAME#-n }"
 fi
 
-if [ -n "$NAME" ] && [ -z "$RELDIR" ]; then
-    ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')-$(n_opt "${NAME#-n }")"
-    RELDIR="varnishgather-$ID"
+if [ -n "$NAME" ] && ! validate_instance; then
+    INSTANCE_NAME=$(get_varnishd_instance)
+    [ -n "$INSTANCE_NAME" ] && NAME="-n $INSTANCE_NAME" || NAME=""
 fi
 
-
+ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')${INSTANCE_NAME:+-$(n_opt "$INSTANCE_NAME")}"
+RELDIR="varnishgather-$ID"
 
 if [ $# -gt 0 ]
 then
