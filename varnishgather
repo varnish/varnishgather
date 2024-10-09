@@ -670,6 +670,17 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
+if command -v "sar" >/dev/null 2>&1; then
+	run sar -A
+	run sar -A -1
+	run sar -A -2
+fi
+
+if command -v "sadf" >/dev/null 2>&1; then
+	run sadf -g -O showtoc -- -A
+	run sadf -g -O showtoc -1 -- -A
+	run sadf -g -O showtoc -2 -- -A
+fi
 
 for a in /var/log/messages /var/log/syslog; do
 	if [ -r "$a" ]; then
