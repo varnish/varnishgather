@@ -886,6 +886,8 @@ if [ -f /etc/rc.local ]; then
 	run cat /etc/rc.local
 fi
 
+run top -n1 -w512 -bHp ${PID_CACHEMAIN}
+
 run lspci -vv -nn -k
 
 coredumpctl_run
