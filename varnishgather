@@ -383,6 +383,10 @@ Varnishgather gathers various system information into a single tar-ball.
  -u <identifier>      Upload generated varnishgather to filebin to
                       filebin.varnish-software.com, curl needed.
  -p                   Perform a perf capture.
+ -d                   Permit use of a debugger (gdb).
+                      Involves a debuging session: attaching to a running
+                      Varnish, pause traffic, perform debugger commands, and
+                      finally deattach (unpause traffic).
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
@@ -397,11 +401,12 @@ _EOF_
 # Proper execution starts here
 ##############################
 
-while getopts hpn:S:T:u: opt
+while getopts hpdn:S:T:u: opt
 do
 	case $opt in
 	u) UPLOAD=$OPTARG ;;
 	p) PERF="TRUE" ;;
+	d) DEBUG="TRUE" ;;
 	n)
 		NAME="-n $OPTARG"
 		ID="$ID-$(n_opt "$OPTARG")"
@@ -463,6 +468,39 @@ if [ "${USERID}" -ne "0" ]; then
 	echo "Please run again as root."
 	echo "#######################################################"
 	sleep 10
+fi
+
+if [ "$DEBUG" = "TRUE" ]
+then
+	RED='\033[0;31m'
+	NC='\033[0m'
+	echo
+	echo "${RED}================================================================================"
+	echo "                                !!! WARNING !!!"
+	echo "Varnishgather is running in debug-mode (-d), this mode of operation should only "
+	echo "be used as a last resort method for troubleshooting. "
+	echo "Do NOT use debug-mode unless you know what you are doing. "
+	echo "Debug-mode is intrusive and no guarantees are given for the success of this "
+	echo "operation. "
+	echo
+	echo "Varnishgather will attach a debugger (gdb) to a live Varnish server, "
+	echo "this could result in but not limited to: "
+	echo "- halt of a varnish process (varnishd, cache-main), Varnish will be "
+	echo "unresponsive until at the end of this session. "
+	echo "- crash of a varnish processes (varnishd, cache-main), the worker process "
+	echo "could get reaped when it stops responding to the health check. "
+	echo "- disruption of service. "
+	echo "- lost of cached content. "
+	echo "=================================================================================${NC}"
+	echo
+	read -p "Are you sure you want to attach a debugger (gdb) to a running Varnish (y/N)? " DEBUG_CONSENT
+	DEBUG_CONSENT=${DEBUG_CONSENT:-N}
+
+	case $DEBUG_CONSENT in
+	  y|Y) echo "DEBUG_CONSENT: ACCEPTED";;
+	  n|N) echo "DEBUG_CONSENT: REJECTED"; exit;;
+	  *) echo "DEBUG_CONSENT: INVALID"; exit;;
+	esac
 fi
 
 check_tools
@@ -800,6 +838,16 @@ if [ -f /etc/rc.local ]; then
 fi
 
 run lspci -vv -nn -k
+
+if [ "$DEBUG" = "TRUE" ]
+then
+	# live debug session!
+	for pid in ${PID_VARNISHD} ${PID_CACHEMAIN}; do
+		run timeout -s TERM 10 gdb -p $pid -batch -ex "info threads"
+		run timeout -s TERM 10 gdb -p $pid -batch -ex "bt" -ex "bt full"
+		run timeout -s TERM 10 gdb -p $pid -batch -ex "thread apply all bt"
+	done
+fi
 
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
