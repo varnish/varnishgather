@@ -170,7 +170,7 @@ vadmin() {
 }
 
 get_varnishd_instance() {
-    ps -eo cmd | grep '[v]arnishd' | grep -oP '(?<=-n )\S+' | sort -u | head -1
+	ps -eo cmd | grep '[v]arnishd' | awk '{for(i=1;i<=NF;i++) if($i=="-n") print $(i+1)}' | sort -u
 }
 
 vadmin_getvcls() {
@@ -436,20 +436,39 @@ done
 
 shift $((OPTIND - 1))
 
-if [ -z "$NAME" ]; then
-    INSTANCE_NAME=$(get_varnishd_instance)
-    [ -n "$INSTANCE_NAME" ] && NAME="-n $INSTANCE_NAME"
-else
+INSTANCE_NAMES=$(get_varnishd_instance)
+if [ -n "$NAME" ]; then
     INSTANCE_NAME="${NAME#-n }"
+   
+    if ! echo "$INSTANCE_NAMES" | grep -qx "$INSTANCE_NAME"; then
+        echo "Warning: Instance name '$INSTANCE_NAME' is not valid."
+
+        NAMED_INSTANCES=$(echo "$INSTANCE_NAMES" | grep -v "<unnamed>")
+        INSTANCE_COUNT=$(echo "$NAMED_INSTANCES" | wc -l)
+        
+        if [ "$INSTANCE_COUNT" -eq 1 ]; then
+            INSTANCE_NAME="$NAMED_INSTANCES"
+            NAME="-n $INSTANCE_NAME"
+            echo "Defaulting to the only valid named instance '$INSTANCE_NAME'."
+        else
+            echo "Please choose a valid instance name from the following list:"
+            echo "$INSTANCE_NAMES"
+            exit 1
+        fi
+    fi
+
+    if ! validate_instance; then
+        echo "Error: Instance '$INSTANCE_NAME' failed varnishadm ping. Is varnishd running?"
+        exit 1
+    fi
+else
+    echo "Proceeding without instance name validation as no '-n' option was provided."
 fi
 
-if [ -n "$NAME" ] && ! validate_instance; then
-    INSTANCE_NAME=$(get_varnishd_instance)
-    [ -n "$INSTANCE_NAME" ] && NAME="-n $INSTANCE_NAME" || NAME=""
-fi
-
-ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')${INSTANCE_NAME:+-$(n_opt "$INSTANCE_NAME")}"
+ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')${INSTANCE_NAME:+_$(n_opt "$INSTANCE_NAME")}"
 RELDIR="varnishgather-$ID"
+
+
 
 if [ $# -gt 0 ]
 then
