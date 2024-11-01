@@ -358,6 +358,90 @@ call_ethtool() {
 	LOG="$OLDLOG"
 }
 
+numactl_run() {
+	log ""
+	log "# numactl $@"
+	log ""
+	numactl $@ >> $LOG 2>&1
+}
+
+call_numactl() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numactl"
+	banner "numactl"
+	numactl_run --hardware
+	numactl_run --show
+	LOG="$OLDLOG"
+}
+
+numastat_run() {
+	log ""
+	log "# numastat $@"
+	log ""
+	numastat $@ >> $LOG 2>&1
+}
+
+call_numastat() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numastat"
+	banner "numastat ($(numastat -V))"
+	numastat_run -p $PID_CACHEMAIN
+	numastat_run -m
+	numastat_run -n
+	LOG="$OLDLOG"
+}
+
+show_numanode_stat() {
+	log ""
+	log "# cat /sys/devices/system/node/$1/$2"
+	log ""
+	cat /sys/devices/system/node/$1/$2 >> $LOG 2>&1
+}
+
+show_numanode() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numa_$(logname "$1")"
+	banner "NUMA $1"
+	show_numanode_stat $1 cpulist
+	show_numanode_stat $1 distance
+	show_numanode_stat $1 meminfo
+	show_numanode_stat $1 numastat
+	show_numanode_stat $1 vmstat
+	LOG="$OLDLOG"
+}
+
+show_numa_stat() {
+	log ""
+	log "# cat /sys/devices/system/node/$1"
+	log ""
+	cat /sys/devices/system/node/$1 >> $LOG 2>&1
+}
+
+show_numa() {
+	call_numactl
+	call_numastat
+
+	incr
+
+	# https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numa"
+	banner "Non-uniform memory access (NUMA)"
+	show_numa_stat possible
+	show_numa_stat online
+	LOG="$OLDLOG"
+
+	for f in /sys/devices/system/node/node*; do
+		show_numanode "$(basename $f)"
+	done
+}
+
 coredumpctl_run() {
 	# list all coredumps on the system for Varnish (last 2 week)
 	run timeout -s TERM 5 coredumpctl --since=-2w list varnishd cache-main
@@ -741,6 +825,8 @@ capturelog /var/log/user.log
 for f in /sys/class/net/*; do
 	call_ethtool "$(basename $f)"
 done
+
+show_numa
 
 run journalctl --since=-1w -u vac.service
 run journalctl --since=-1w -u varnish.service
