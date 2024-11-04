@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.101
+VERSION=1.102
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -85,9 +85,9 @@ taskecho() {
 }
 
 banner() {
-	log "--------------------------------"
-	log "Item $ITEM: $*"
-	log "--------------------------------"
+	log "# --------------------------------"
+	log "# Item $ITEM: $*"
+	log "# --------------------------------"
 	taskecho "$*"
 }
 
@@ -136,6 +136,14 @@ runpipe() {
 	banner $(pipeprint "$@")
 	runpipe_recurse "$@" >> ${LOG} 2>&1
 	LOG="$OLDLOG"
+}
+
+capturelog() {
+	if [ -r $1 ]; then
+		run egrep -ai "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$1"
+	else
+		incr
+	fi
 }
 
 mycat() {
@@ -327,6 +335,129 @@ call_blockdev() {
 	blockdev_cat "$1/queue/minimum_io_size"
 	blockdev_cat "$1/queue/optimal_io_size"
 	LOG="$OLDLOG"
+}
+
+ethtool_run() {
+	log ""
+	log "# ethtool $1 $2"
+	log ""
+	ethtool $1 $2 >> $LOG 2>&1
+}
+
+call_ethtool() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_ethtool_$(logname "$1")"
+	banner "ethtool $1"
+	ethtool_run -S $1
+	ethtool_run -a $1
+	ethtool_run -c $1
+	ethtool_run -k $1
+	ethtool_run -g $1
+	LOG="$OLDLOG"
+}
+
+numactl_run() {
+	log ""
+	log "# numactl $@"
+	log ""
+	numactl $@ >> $LOG 2>&1
+}
+
+call_numactl() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numactl"
+	banner "numactl"
+	numactl_run --hardware
+	numactl_run --show
+	LOG="$OLDLOG"
+}
+
+numastat_run() {
+	log ""
+	log "# numastat $@"
+	log ""
+	numastat $@ >> $LOG 2>&1
+}
+
+call_numastat() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numastat"
+	banner "numastat ($(numastat -V))"
+	numastat_run -p $PID_CACHEMAIN
+	numastat_run -m
+	numastat_run -n
+	LOG="$OLDLOG"
+}
+
+show_numanode_stat() {
+	log ""
+	log "# cat /sys/devices/system/node/$1/$2"
+	log ""
+	cat /sys/devices/system/node/$1/$2 >> $LOG 2>&1
+}
+
+show_numanode() {
+	incr
+
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numa_$(logname "$1")"
+	banner "NUMA $1"
+	show_numanode_stat $1 cpulist
+	show_numanode_stat $1 distance
+	show_numanode_stat $1 meminfo
+	show_numanode_stat $1 numastat
+	show_numanode_stat $1 vmstat
+	LOG="$OLDLOG"
+}
+
+show_numa_stat() {
+	log ""
+	log "# cat /sys/devices/system/node/$1"
+	log ""
+	cat /sys/devices/system/node/$1 >> $LOG 2>&1
+}
+
+show_numa() {
+	call_numactl
+	call_numastat
+
+	incr
+
+	# https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
+	OLDLOG="$LOG"
+	LOG="${DIR}/$(item_num)_numa"
+	banner "Non-uniform memory access (NUMA)"
+	show_numa_stat possible
+	show_numa_stat online
+	LOG="$OLDLOG"
+
+	for f in /sys/devices/system/node/node*; do
+		show_numanode "$(basename $f)"
+	done
+}
+
+coredumpctl_run() {
+	# list all coredumps on the system for Varnish (last 2 week)
+	run timeout -s TERM 5 coredumpctl --since=-2w list varnishd cache-main
+
+	# detailed information of each coredump of Varnish (last 2 week)
+	run timeout -s TERM 5 coredumpctl --since=-2w info varnishd cache-main
+
+	# backtrace of the most recent crash of Varnish
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'bt full'" gdb varnishd
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'bt full'" gdb cache-main
+
+	# backtrace of the most recent crash of all threads of the Varnish worker process
+	# Unfortunately, the core file does not contain the name of each thread
+	# from /proc/<pid>/task/<tid>/comm . This means GDB is not able to show the
+	# name of the running threads from the core file.
+	run timeout -s TERM 10 coredumpctl --debugger-arguments="-batch -ex 'thread apply all bt'" gdb cache-main
 }
 
 upload_fail() {
@@ -601,6 +732,18 @@ mycat /etc/sysconfig/varnish
 mycat /etc/varnish/varnish.params
 mycat /sys/kernel/mm/transparent_hugepage/enabled
 mycat /sys/kernel/mm/redhat_transparent_hugepage/enabled
+mycat /proc/diskstats
+mycat /proc/interrupts
+mycat /proc/pressure/cpu
+mycat /proc/pressure/memory
+mycat /proc/pressure/io
+mycat /proc/softirqs
+mycat /proc/stat
+mycat /proc/vmstat
+mycat /proc/vmallocinfo
+mycat /proc/net/dev
+mycat /proc/net/sockstat
+mycat /proc/net/sockstat6
 mycat /proc/user_beancounters
 mycat /proc/meminfo
 mycat /proc/crypto
@@ -670,14 +813,42 @@ run lsblk
 #	run blockdev --getbsz /dev/$d
 #done
 
+capturelog /var/log/messages
+capturelog /var/log/syslog
+capturelog /var/log/debug
+capturelog /var/log/kern.log
+capturelog /var/log/dpkg.log
+capturelog /var/log/yum.log
+capturelog /var/log/dnf.log
+capturelog /var/log/user.log
 
-for a in /var/log/messages /var/log/syslog; do
-	if [ -r "$a" ]; then
-		run egrep -i "(broadcaster|varnish|vha-agent|hitch|vac|rc.local|varnish-controller|vcs)" "$a"
-	else
-		incr
-	fi
+for f in /sys/class/net/*; do
+	call_ethtool "$(basename $f)"
 done
+
+show_numa
+
+run journalctl --since=-1w -u vac.service
+run journalctl --since=-1w -u varnish.service
+run journalctl --since=-1w -u varnish-agent.service
+run journalctl --since=-1w -u varnish-controller-agent.service
+run journalctl --since=-1w -u varnish-controller-api-gw.service
+run journalctl --since=-1w -u varnish-controller-brainz.service
+run journalctl --since=-1w -u varnish-controller-nats.service
+run journalctl --since=-1w -u varnish-controller-ui.service
+run journalctl --since=-1w -u varnish-controller-router.service
+run journalctl --since=-1w -u varnish-discovery.service
+run journalctl --since=-1w -u varnish-traffic-router.service
+run journalctl --since=-1w -u vcs.service
+run journalctl --since=-1w -u vcs-agent.service
+run journalctl --since=-1w -u vstatd.service
+run journalctl --since=-1w -u vstatdprobe.service
+
+run journalctl --since=-1h -u broadcaster.service
+run journalctl --since=-1h -u varnishlog-errors.service
+run journalctl --since=-1h -u varnishncsa.service
+run journalctl --since=-1h -u vha-agent.service
+run journalctl --since=-1h -u irqbalance.service
 
 # ip tables
 if  (lsmod | grep ip_tables > /dev/null); then
@@ -763,6 +934,8 @@ run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
 if [ "$PERF" = "TRUE" ]
 then
 	run timeout -s TERM 5 perf record -F 99 -p ${PID_ALL_VARNISHD_COMMA} -g
+	run timeout -s TERM 5 perf report -g
+	run timeout -s TERM 5 perf script
 fi
 
 if [ -d "/etc/api-engine" ]; then
@@ -799,7 +972,11 @@ if [ -f /etc/rc.local ]; then
 	run cat /etc/rc.local
 fi
 
+run top -n1 -w512 -bHp ${PID_CACHEMAIN}
+
 run lspci -vv -nn -k
+
+coredumpctl_run
 
 cd "$ORIGPWD"
 TGZ="varnishgather.${ID}.tar.gz"
