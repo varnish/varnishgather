@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.101
+VERSION=1.102
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -161,6 +161,27 @@ get_pid () {
 		PID_ALL_VARNISHD=$(echo "${PID_VARNISHD} ${PID_CACHEMAIN}" | tr '\n' ' ')
 		PID_ALL_VARNISHD_COMMA=$(echo "${PID_VARNISHD} ${PID_CACHEMAIN}" | tr '\n' ' ' | sed 's/ /,/g')
 	fi
+}
+
+list_names() {
+	ps -eo cmd | awk '
+		$1 ~ /varnishd/ {
+			name="";
+			for (i=1;i<NF;i++) {
+				name="";
+				if ($i=="-n") {
+					name=$(i+1); break
+				}
+			}
+			if(name) {
+				names[n++]=name
+			} else {
+				names[n++]="<noname>"
+			}
+		}
+		END {
+			for (i in names) print names[i]
+		}' | sort -u
 }
 
 vadmin() {
@@ -457,21 +478,57 @@ info "Invoked by: $USERID"
 info "Command line: $*"
 info "Working directory: $DIR"
 
+DELAY=0
 if [ "${USERID}" -ne "0" ]; then
 	echo "#######################################################"
 	echo "Running as non-root, the results might not be complete."
 	echo "Please run again as root."
 	echo "#######################################################"
-	sleep 10
+	DELAY=10
 fi
 
-check_tools
 
-if [ ! $(command -v pidof) ] || [ ! $(command -v pgrep) ]; then
-	 get_pid
+CANDIDATE_NAMES=$(list_names)
+EXIT=
+if ! varnishadm $VARNISHADMARG ping &> /dev/null; then
+	echo "#######################################################"
+	echo "using: varnishadm $VARNISHADMARG ping,"
+	echo "We couldn't ping varnishd, Is it running and is"
+	echo "$0 running with the right permissions?"
+	if [ -z "$NAME" -a \
+		$(echo $CANDIDATE_NAMES | wc -w) = 1 -a \
+		"$CANDIDATE_NAMES" != "<noname>" ]; then
+		if varnishadm $VARNISHADMARG -n $CANDIDATE_NAMES ping &> /dev/null; then
+			echo ""
+			echo "There's only one varnishd running and it's pingable."
+			echo ""
+			echo "Overriding -n argument to $CANDIDATE_NAMES"
+			NAME="-n $CANDIDATE_NAMES"
+			VARNISHADMARG="$NAME $SECRET $HOSTPORT"
+		else
+			EXIT=1
+		fi
+	# NAME is tested twice, but it saves on indentation
+	elif [ -z "$NAME" -a $(echo $CANDIDATE_NAMES | wc -w) -gt 1 ]; then
+		echo ""
+		echo "We've also detected one or more other varnishd that"
+		echo "could possibly be pinged with these -n arguments:"
+		for n in $CANDIDATE_NAMES; do
+			if [ "$n" != "<noname>" ]; then
+				echo "				-n $n"
+			fi
+		done
+	fi
+	echo "#######################################################"
+	DELAY=10
 fi
 
+if [ -n "$EXIT" ]; then
+	exit 1
+fi
 info "Complete varnishadm command line deduced to: $VARNISHADMARG"
+sleep $DELAY
+
 run varnishd -V
 run varnish-agent -V
 run vha-agent -V
