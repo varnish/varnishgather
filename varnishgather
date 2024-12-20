@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.101
+VERSION=1.102
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -383,6 +383,7 @@ Varnishgather gathers various system information into a single tar-ball.
  -u <identifier>      Upload generated varnishgather to filebin to
                       filebin.varnish-software.com, curl needed.
  -p                   Perform a perf capture.
+ -L                   Skip the varnishlog extraction.
  -h                   Show this text.
 
 All arguments are optional. varnishgather will attempt to detect the
@@ -397,7 +398,7 @@ _EOF_
 # Proper execution starts here
 ##############################
 
-while getopts hpn:S:T:u: opt
+while getopts hpn:S:T:u:L opt
 do
 	case $opt in
 	u) UPLOAD=$OPTARG ;;
@@ -420,6 +421,7 @@ do
 	h)
 		usage 0
 		;;
+    L) VLOG="FALSE" ;;
 	*)
 		usage 1
 		;;
@@ -757,7 +759,10 @@ case "$VARNISH" in
 *)
 	args="-g raw";;
 esac
-run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
+if [ "$VLOG" != "FALSE" ]
+then
+    run timeout -s TERM 90 varnishlog -d ${args} -w "${DIR}/varnishlog.raw" $STATCMD
+fi
 
 # perf
 if [ "$PERF" = "TRUE" ]
