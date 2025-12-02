@@ -615,19 +615,22 @@ OLDLOG="$LOG"
 IRQDIR="${DIR}/$(item_num)_irq"
 LOG="${IRQDIR}.log"
 banner "IRQ information"
-mkdir -p "$IRQDIR"
 
-# Capture /proc/interrupts and /proc/irq/
-if [ -r /proc/interrupts ]; then
-	cp /proc/interrupts "$IRQDIR/" 2>>"$LOG"
-fi
+(
+	mkdir -p "$IRQDIR"
 
-if [ -d /proc/irq ]; then
-	cp -r /proc/irq "$IRQDIR/" 2>>"$LOG"
-fi
+	# Capture /proc/interrupts and /proc/irq/
+	if [ -r /proc/interrupts ]; then
+		cp /proc/interrupts "$IRQDIR/"
+	fi
 
-tar czf "${IRQDIR}.tar.gz" -C "$DIR" "$(item_num)_irq" >>"$LOG" 2>&1
-rm -rf "$IRQDIR"
+	if [ -d /proc/irq ]; then
+		cp -r /proc/irq "$IRQDIR/"
+	fi
+
+	tar czf "${IRQDIR}.tar.gz" -C "$DIR" "$(item_num)_irq"
+	rm -rf "$IRQDIR"
+) >>"$LOG" 2>&1
 
 LOG="$OLDLOG"
 for pid in ${PID_VARNISHD}; do
