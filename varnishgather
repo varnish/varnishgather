@@ -38,7 +38,7 @@ TOPDIR=$(mktemp -d ${TMPDIR:-/tmp}/varnishgather.XXXXXXXX)
 ID="$(cat /etc/hostname)-$(date +'%Y%m%d-%H%M%S')"
 RELDIR="varnishgather-$ID"
 ORIGPWD=$PWD
-VERSION=1.103
+VERSION=1.104
 USERID=$(id -u)
 PID_ALL_VARNISHD=$(pidof varnishd 2> /dev/null)
 PID_ALL_VARNISHD_COMMA=$(pidof varnishd 2> /dev/null | sed 's/ /,/g')
@@ -608,6 +608,31 @@ mycat /proc/user_beancounters
 mycat /proc/meminfo
 mycat /proc/crypto
 mycat /proc/sys/net/ipv4/tcp_tw_reuse
+
+# IRQ information
+incr
+OLDLOG="$LOG"
+IRQDIR="${DIR}/$(item_num)_irq"
+LOG="${IRQDIR}.log"
+banner "IRQ information"
+
+(
+	mkdir -p "$IRQDIR"
+
+	# Capture /proc/interrupts and /proc/irq/
+	if [ -r /proc/interrupts ]; then
+		cp /proc/interrupts "$IRQDIR/"
+	fi
+
+	if [ -d /proc/irq ]; then
+		cp -r /proc/irq "$IRQDIR/"
+	fi
+
+	tar czf "${IRQDIR}.tar.gz" -C "$DIR" "$(item_num)_irq"
+	rm -rf "$IRQDIR"
+) >>"$LOG" 2>&1
+
+LOG="$OLDLOG"
 for pid in ${PID_VARNISHD}; do
 	run cat -v /proc/$pid/cmdline
 	mycat /proc/$pid/cgroup
