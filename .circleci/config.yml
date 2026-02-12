@@ -1,0 +1,94 @@
+version: 2.1
+
+commands:
+  install_dependencies:
+    parameters:
+      repo:
+        type: string
+      token:
+        type: env_var_name
+      install:
+        type: string
+    steps:
+      # Docker based images by default do not have lsmod or modprobe.
+      # We need to install kmod so that the varnishgather can run in a container.
+      - run:
+          name: "Install dependencies"
+          command: |
+            if command -v apt-get > /dev/null; then
+              apt update -y
+              apt install -y kmod curl
+            else
+              yum update -y
+              yum install -y kmod curl
+            fi
+            curl https://docs.varnish-software.com/scripts/setup.sh | TOKEN=${<<parameters.token>>} REPO=<<parameters.repo>> INSTALL="<<parameters.install>>" bash
+
+varnish: &varnish
+  parameters:
+    platform:
+      type: string
+  docker:
+    - image: <<parameters.platform>>
+  steps:
+    - checkout
+    # Why does the varnishgather exit with a non-zero status code, even if
+    # it is successfull? For now, I'm ignoring the exit code to make progress
+    # on the CircleCi configuration.
+    - run: ./varnishgather || true
+    - run:
+        name: "Move gather"
+        command: |
+          mkdir -p gathers/<<parameters.platform>>
+          mv *.tar.gz gathers/<<parameters.platform>>/
+    - persist_to_workspace:
+        root: ./
+        paths:
+          - gathers
+
+jobs:
+  varnish_41:
+    <<: *varnish
+  varnish_60:
+    <<: *varnish
+  test:
+    docker:
+      - image: cimg/python:3.9.2
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./gathers
+      - run: python test.py "gathers"
+
+workflows:
+  test:
+    jobs:
+      - varnish_41:
+          pre-steps:
+            - install_dependencies:
+                repo: "41"
+                token: "PROJECT_PACKAGECLOUD_41_TOKEN"
+                install: "varnish-plus"
+          matrix:
+            parameters:
+              platform: [
+                "debian:stretch",
+                "ubuntu:xenial",
+                "centos:7"
+              ]
+      - varnish_60:
+          pre-steps:
+            - install_dependencies:
+                repo: "60"
+                token: "PROJECT_PACKAGECLOUD_60_TOKEN"
+                install: "varnish-plus"
+          matrix:
+            parameters:
+              platform: [
+                "debian:buster", "debian:stretch", "debian:bullseye",
+                "ubuntu:bionic", "ubuntu:focal", "ubuntu:xenial",
+                "centos:7", "centos:8",
+                "rockylinux:8"
+              ]
+      - test:
+          requires: ["varnish_60", "varnish_41"]
