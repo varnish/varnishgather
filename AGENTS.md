@@ -19,10 +19,10 @@ automated test suite.  The entire codebase is:
 ## Design constraints — read before changing anything
 
 1. **POSIX `sh` only.**  The shebang is `#!/bin/sh`.  Do not use bash
-   extensions: no `[[ ]]`, no `$(( ))` arithmetic beyond what POSIX
-   guarantees, no `local`, no arrays, no `$'...'` quoting, no process
-   substitution `<(...)`.  Run `shellcheck --shell=sh varnishgather` to
-   check.
+   extensions: no `[[ ]]`, no `local`, no arrays, no `$'...'` quoting,
+   no process substitution `<(...)`.  `$(( ))` arithmetic expansion is
+   POSIX and fine to use (the script already relies on it).  Run
+   `shellcheck --shell=sh varnishgather` to check.
 
 2. **Non-invasive.**  The script is meant to be safe to run on production
    Varnish servers.  Do not add anything that writes to Varnish state,
@@ -60,7 +60,7 @@ automated test suite.  The entire codebase is:
 | `call_blockdev PATH` | Captures block-device queue parameters from sysfs for a device. |
 | `upload` | POSTs the finished tarball to `filebin.varnish-software.com` via `curl`. |
 | `list_names` | Discovers all running varnishd `-n` names by reading `/proc/*/cmdline`. |
-| `get_pid` | Falls back to scanning `/proc` when `pidof`/`pgrep` are unavailable. |
+| `get_pid` | Scans `/proc` to populate PID variables. Defined but **not currently called** — dead code; a future fix should wire it up as a fallback when `pidof`/`pgrep` are unavailable. |
 | `logname ARGS…` | Sanitises a command string into a safe filename fragment. |
 
 ---

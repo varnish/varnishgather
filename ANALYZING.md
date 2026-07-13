@@ -31,9 +31,16 @@ cat varnishgather.log | head -5
 # Should show: "Varnishgather version: X.XXX"
 ```
 
-Once extracted, all files in the directory are regular readable text files
-(plus `varnishlog.raw` which is binary).  No special permissions are needed
-to read them — just open and parse them directly.
+Once extracted, most files in the directory are regular readable text files.
+Exceptions — do not try to parse these as text:
+- `varnishlog.raw` — binary VSL log
+- `NNN_vcls.tar` — tar archive of all VCL files
+- `NNN_irq.tar.gz` — compressed archive of IRQ/interrupt data
+- `NNN_modsec.tar` — ModSecurity config archive (if present)
+- `perf.data` — perf record output (if `-p` was used)
+
+No special permissions are needed to read the text files — just open and
+parse them directly.
 
 ---
 
@@ -57,11 +64,12 @@ Item NNN: <original command>
 ```
 The actual command output follows.
 
-When a command was not found or a file was not readable, the file is
-either absent or empty (the script increments the counter but writes
-nothing).  Use glob patterns like `*varnishstat_-1*` to find files
-without needing to know the exact item number — numbers shift between
-gather versions.
+When a command was not found or a file was not readable, the output file is
+**absent** (never created — the script increments the counter and returns
+without opening any file).  A file that exists but contains only the 3-line
+banner means the command ran but produced no output.  Use glob patterns like
+`*varnishstat_-1*` to find files without needing to know the exact item
+number — numbers shift between gather versions.
 
 ---
 
@@ -318,7 +326,7 @@ the file sections.  For each non-builtin, non-vha6 section:
 **XKey + persistent MSE cohabitation:**
 ⚠️ If `*varnishstat_-1*` contains `MSE_BOOK` and any `*vcl_show*` file
 contains `import xkey`, flag it — long startup times may result.
-Reference: http://docs.varnish-software.com/varnish-cache-plus/vmods/ykey/#xkey
+Reference: https://docs.varnish-software.com/varnish-cache-plus/vmods/ykey/#xkey
 
 Read `*backend_list*`:
 - List backends and their probe health
@@ -358,15 +366,18 @@ varnishlog -r varnishlog.raw -c -i Timestamp | grep "Start:" | tail -1
 
 # Average hit response time (seconds)
 varnishlog -r varnishlog.raw -c \
-  -q "ReqMethod eq GET and VCL_call eq HIT" -i Timestamp | grep Resp:
+  -q "ReqMethod eq GET and VCL_call eq HIT" -i Timestamp | grep Resp: | \
+  awk '{t+=$5} END{print t/(NR+0.0000001) " seconds (count: " NR ")"}'
 
 # Average miss response time (seconds)
 varnishlog -r varnishlog.raw -c \
-  -q "ReqMethod eq GET and VCL_call eq MISS" -i Timestamp | grep Resp:
+  -q "ReqMethod eq GET and VCL_call eq MISS" -i Timestamp | grep Resp: | \
+  awk '{t+=$5} END{print t/(NR+0.0000001) " seconds (count: " NR ")"}'
 
 # Average waitinglist delay (object coalescing / backend saturation)
 varnishlog -r varnishlog.raw -c \
-  -q "ReqMethod eq GET and Timestamp:Waitinglist" -i Timestamp | grep Waitinglist:
+  -q "ReqMethod eq GET and Timestamp:Waitinglist" -i Timestamp | grep Waitinglist: | \
+  awk '{t+=$5} END{print t/(NR+0.0000001) " seconds (count: " NR ")"}'
 
 # VHA6 cluster requests
 varnishlog -r varnishlog.raw -c -q "ReqMethod ~ VHA" -i ReqStart | grep ReqStart | wc -l
@@ -409,17 +420,9 @@ Docker using an image that matches the version found in `*varnishd_-V`.
 3. **Mount the gather directory** with `-v` so the container can read
    `varnishlog.raw`:
    ```sh
-   # Replace IMAGE and VERSION as determined above
+   # Replace IMAGE as determined above
    IMAGE=varnish/varnish-enterprise:6.0.16r12   # or varnish:X.Y.Z
    GATHER=$PWD   # must be the extracted gather directory
-
-   # Aggregate traffic metrics (equivalent of varnishstat over the log)
-   docker run --rm -v "$GATHER:/gather" $IMAGE \
-     varnishstat -r /gather/varnishlog.raw
-
-   # JSON metrics output
-   docker run --rm -v "$GATHER:/gather" $IMAGE \
-     varnishlog-json -r /gather/varnishlog.raw
 
    # Full request/response view grouped by request
    docker run --rm -v "$GATHER:/gather" $IMAGE \
@@ -433,17 +436,20 @@ Docker using an image that matches the version found in `*varnishd_-V`.
    docker run --rm -v "$GATHER:/gather" $IMAGE \
      varnishlog -r /gather/varnishlog.raw -g request \
        -q 'ReqURL ~ "/api/v1/repos"'
+
+   # JSON output — Enterprise image only (varnish/varnish-enterprise:*)
+   docker run --rm -v "$GATHER:/gather" $IMAGE \
+     varnishlog-json -r /gather/varnishlog.raw
    ```
 
    Typical use-cases:
-   - **`varnishstat -r`** — computes aggregate counters from the log;
-     useful to cross-check the live `varnishstat -1` snapshot.
-   - **`varnishlog-json -r`** — structured JSON output; easier to parse
-     programmatically or pipe into `jq`.
    - **`varnishlog -r -g request`** — shows each transaction as a
      grouped block; best for debugging individual requests.
    - **`varnishlog -r -g request -q '…'`** — filter to specific
      transactions using VSL query syntax.
+   - **`varnishlog-json -r`** — structured JSON output; easier to parse
+     programmatically or pipe into `jq`.  **Enterprise image only** —
+     not available in the `varnish:*` OSS image.
 
 ### 3.12 varnishscoreboard
 
@@ -549,11 +555,13 @@ A good analysis report should contain these sections in order:
 
 - **Use glob patterns without item numbers** — numbers shift between
   gather versions.  Use `*varnishstat_-1*`, not `060_varnishstat_-1`.
-- **Each file starts with a header block** — skip the first 4 lines (the
+- **Each file starts with a header block** — skip the first 3 lines (the
   `---` banner) when parsing programmatically, or just grep past them.
-- **Empty files are normal** — many probes run commands that don't exist
-  on the target system.  An empty or absent file means the command
-  silently skipped.
+- **Missing files are normal** — many probes run commands that don't exist
+  on the target system.  If a command was not in `PATH`, the script
+  silently skips it and the output file is never created (absent).  A file
+  that exists but contains only the 3-line header banner means the command
+  ran but produced no output.
 - **Multiple PIDs** — some files are per-PID (`*proc_<pid>_*`).  If
   there are multiple varnishd processes, there will be multiple such
   files.
