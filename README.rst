@@ -60,6 +60,10 @@ to interpret.
 The only thing I can say is: use ``varnishlog -r`` to read the varnishlog
 provided.
 
+For a detailed guide on how to interpret a gather, see `ANALYZING.md`_.
+
+.. _ANALYZING.md: ANALYZING.md
+
 Are patches welcome?
 --------------------
 
