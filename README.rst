@@ -60,9 +60,36 @@ to interpret.
 The only thing I can say is: use ``varnishlog -r`` to read the varnishlog
 provided.
 
-For a detailed guide on how to interpret a gather, see `ANALYZING.md`_.
+A detailed guide on how to interpret a gather ships as a Claude Code skill
+(see the next section).
 
-.. _ANALYZING.md: ANALYZING.md
+Analyzing a gather with Claude Code
+-----------------------------------
+
+The repository ships a Claude Code skill
+(``skills/analyze-varnishgather/``) that knows how to read a gather and
+produce a diagnostic report, including helper scripts for the automated
+warning checklist (``vg-check``) and for reading the raw log
+(``vg-log``).
+
+Install it by symlinking it into your personal skills directory, so
+updates arrive with ``git pull``::
+
+  git clone https://github.com/varnish/varnishgather.git
+  mkdir -p ~/.claude/skills
+  ln -s "$PWD/varnishgather/skills/analyze-varnishgather" ~/.claude/skills/
+
+To update::
+
+  git -C varnishgather pull
+
+If you copied the directory instead of symlinking, re-run the copy
+after pulling.
+
+Then, from a directory containing an extracted gather (or the
+tarball)::
+
+  claude "analyze this varnishgather"
 
 Are patches welcome?
 --------------------

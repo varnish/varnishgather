@@ -11,7 +11,8 @@ automated test suite.  The entire codebase is:
 |------|---------|
 | `varnishgather` | The script itself (the only deliverable) |
 | `README.rst` | User-facing documentation |
-| `ANALYZING.md` | How to analyze a gather and produce a diagnostic report |
+| `ANALYZING.md` | Stub — analysis guide moved to the skill below |
+| `skills/analyze-varnishgather/` | Claude Code skill: gather analysis guide + vg-check/vg-log helper scripts |
 | `packaging/` | RPM/Debian packaging metadata |
 
 ---
@@ -87,6 +88,7 @@ There is no automated test suite.  Validate changes with:
 ```sh
 # Lint (install shellcheck if needed)
 shellcheck --shell=sh varnishgather
+shellcheck --shell=sh skills/analyze-varnishgather/scripts/vg-check skills/analyze-varnishgather/scripts/vg-log
 
 # Smoke-test: run against a live Varnish instance
 sudo sh ./varnishgather -h          # should print usage and exit 0

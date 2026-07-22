@@ -1,0 +1,262 @@
+#!/bin/sh
+#
+# vg-log - wrapper around varnishlog / varnishncsa / varnishlog-json for
+# reading the binary varnishlog.raw capture found inside a varnishgather
+# diagnostic directory.
+#
+# Picks between a locally installed tool and a docker container
+# automatically, based on the Varnish version/flavour that produced the
+# gather (see ANALYZING.md, section 3.11, for the manual procedure this
+# replaces).
+#
+# POSIX sh only: no bashisms, no arrays, no "local".
+
+PROG=vg-log
+
+usage() {
+	cat <<EOF
+Usage: $PROG [-m auto|local|docker] [-t log|ncsa|json] [-g GATHER_DIR] [-n] [--] EXTRA_ARGS...
+
+  -m MODE   auto (default), local, or docker
+              auto   = local if the tool is in PATH, docker otherwise
+              local  = run the tool from PATH
+              docker = run the tool in a container matching the gather's
+                       Varnish version
+  -t TOOL   log (default) -> varnishlog
+            ncsa          -> varnishncsa
+            json          -> varnishlog-json (Varnish Enterprise only)
+  -g DIR    varnishgather directory to read (default: .)
+  -n        dry-run: print the command that would be executed, quoted,
+            and exit without running it
+  -h        show this help and exit
+
+Everything after the recognised options (or after --) is passed through
+verbatim to the underlying tool, e.g.:
+
+  $PROG -g /path/to/gather -- -q 'ReqURL ~ "/api"' -i Timestamp
+EOF
+}
+
+die() {
+	printf '%s: %s\n' "$PROG" "$1" >&2
+	exit 2
+}
+
+# Extract the version token from a "varnishd (TOKEN ...)"-style line, e.g.
+# "varnishd (varnish-plus-6.0.16r12 revision abcdef)" -> "varnish-plus-6.0.16r12"
+parse_ver_token() {
+	printf '%s\n' "$1" | sed -n 's/.*(\([^ )]*\)[ )].*/\1/p'
+}
+
+# Strip the varnish-plus-/varnish- prefix off a version token.
+normalize_ver() {
+	case "$1" in
+	varnish-plus-*)
+		printf '%s\n' "${1#varnish-plus-}"
+		;;
+	varnish-*)
+		printf '%s\n' "${1#varnish-}"
+		;;
+	*)
+		printf '%s\n' "$1"
+		;;
+	esac
+}
+
+# Print a single argument quoted for a POSIX shell, no trailing newline.
+quote_arg() {
+	case "$1" in
+	'')
+		printf "''"
+		;;
+	*[!A-Za-z0-9._/:=@%+-]*)
+		printf "'"
+		printf '%s' "$1" | sed "s/'/'\\\\''/g"
+		printf "'"
+		;;
+	*)
+		printf '%s' "$1"
+		;;
+	esac
+}
+
+# Print a full command line, shell-quoted, one line, newline-terminated.
+print_cmd() {
+	first=1
+	for a in "$@"; do
+		if [ "$first" -eq 1 ]; then
+			first=0
+		else
+			printf ' '
+		fi
+		quote_arg "$a"
+	done
+	printf '\n'
+}
+
+MODE=auto
+TOOL=log
+GATHER=.
+DRYRUN=0
+
+while getopts ':m:t:g:nh' opt; do
+	case "$opt" in
+	m)
+		MODE=$OPTARG
+		;;
+	t)
+		TOOL=$OPTARG
+		;;
+	g)
+		GATHER=$OPTARG
+		;;
+	n)
+		DRYRUN=1
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	:)
+		printf '%s: option -%s requires an argument\n' "$PROG" "$OPTARG" >&2
+		usage >&2
+		exit 2
+		;;
+	\?)
+		printf '%s: unknown option -%s\n' "$PROG" "$OPTARG" >&2
+		usage >&2
+		exit 2
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+case "$MODE" in
+auto | local | docker) ;;
+*)
+	die "invalid mode: $MODE (expected auto, local, or docker)"
+	;;
+esac
+
+case "$TOOL" in
+log)
+	BINARY=varnishlog
+	;;
+ncsa)
+	BINARY=varnishncsa
+	;;
+json)
+	BINARY=varnishlog-json
+	;;
+*)
+	die "invalid tool: $TOOL (expected log, ncsa, or json)"
+	;;
+esac
+
+RAW="$GATHER/varnishlog.raw"
+[ -f "$RAW" ] || die "no varnishlog.raw found in gather directory: $GATHER"
+
+# --- Version / image detection ---------------------------------------
+
+VERFILE=
+for f in "$GATHER"/*varnishd_-V*; do
+	if [ -e "$f" ]; then
+		VERFILE=$f
+	fi
+	break
+done
+
+GATHER_TOKEN=
+GATHER_VERSION=
+GATHER_IMAGE=
+GATHER_ENTERPRISE=0
+VERSION_PARSED=0
+
+if [ -n "$VERFILE" ] && [ -r "$VERFILE" ]; then
+	verline=$(sed -n '4p' "$VERFILE")
+	GATHER_TOKEN=$(parse_ver_token "$verline")
+	if [ -n "$GATHER_TOKEN" ]; then
+		case "$GATHER_TOKEN" in
+		varnish-plus-*)
+			GATHER_VERSION=$(normalize_ver "$GATHER_TOKEN")
+			GATHER_ENTERPRISE=1
+			GATHER_IMAGE="varnish/varnish-enterprise:$GATHER_VERSION"
+			VERSION_PARSED=1
+			;;
+		varnish-*)
+			GATHER_VERSION=$(normalize_ver "$GATHER_TOKEN")
+			GATHER_ENTERPRISE=0
+			GATHER_IMAGE="varnish:$GATHER_VERSION"
+			VERSION_PARSED=1
+			;;
+		*) ;;
+		esac
+	fi
+fi
+
+# --- Mode resolution ---------------------------------------------------
+
+EFFMODE=$MODE
+case "$MODE" in
+auto)
+	if command -v "$BINARY" >/dev/null 2>&1; then
+		EFFMODE=local
+	elif command -v docker >/dev/null 2>&1; then
+		EFFMODE=docker
+	else
+		die "neither '$BINARY' nor 'docker' found in PATH; install one or pass -m local|docker explicitly"
+	fi
+	;;
+docker)
+	command -v docker >/dev/null 2>&1 || die "docker not found in PATH"
+	;;
+local) ;;
+esac
+
+if [ "$EFFMODE" = "docker" ]; then
+	if [ "$VERSION_PARSED" -ne 1 ]; then
+		die "could not determine the Varnish version from the gather directory (no readable *varnishd_-V* file); pass a working local $BINARY via -m local instead"
+	fi
+	if [ "$TOOL" = "json" ] && [ "$GATHER_ENTERPRISE" -ne 1 ]; then
+		die "varnishlog-json requires Varnish Enterprise; this gather is an open-source build ($GATHER_IMAGE)"
+	fi
+fi
+
+if [ "$EFFMODE" = "local" ]; then
+	if ! command -v "$BINARY" >/dev/null 2>&1; then
+		if [ "$TOOL" = "json" ]; then
+			die "$BINARY not found in PATH; varnishlog-json is only shipped with Varnish Enterprise"
+		else
+			die "$BINARY not found in PATH"
+		fi
+	fi
+fi
+
+# --- Execution ----------------------------------------------------------
+
+if [ "$EFFMODE" = "local" ]; then
+	if [ "$DRYRUN" -eq 0 ] && [ "$VERSION_PARSED" -eq 1 ]; then
+		tool_verline=$("$BINARY" -V 2>&1 | sed -n '1p')
+		tool_token=$(parse_ver_token "$tool_verline")
+		tool_version=$(normalize_ver "$tool_token")
+		if [ -n "$tool_version" ] && [ "$tool_version" != "$GATHER_VERSION" ]; then
+			printf '%s: warning: local %s is version %s, but this gather was captured with %s; VSL format may have drifted between versions\n' \
+				"$PROG" "$BINARY" "$tool_version" "$GATHER_VERSION" >&2
+		fi
+	fi
+
+	if [ "$DRYRUN" -eq 1 ]; then
+		print_cmd "$BINARY" -r "$RAW" "$@"
+		exit 0
+	fi
+	exec "$BINARY" -r "$RAW" "$@"
+else
+	ABS_GATHER=$(cd "$GATHER" && pwd) || die "cannot resolve gather directory: $GATHER"
+	MOUNT="$ABS_GATHER:/gather:ro"
+
+	if [ "$DRYRUN" -eq 1 ]; then
+		print_cmd docker run --rm -v "$MOUNT" "$GATHER_IMAGE" "$BINARY" -r /gather/varnishlog.raw "$@"
+		exit 0
+	fi
+	exec docker run --rm -v "$MOUNT" "$GATHER_IMAGE" "$BINARY" -r /gather/varnishlog.raw "$@"
+fi

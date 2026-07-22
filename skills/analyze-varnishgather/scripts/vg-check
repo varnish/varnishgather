@@ -1,0 +1,585 @@
+#!/bin/sh
+#
+# vg-check -- automate the ANALYZING.md warning checklist against a
+# varnishgather diagnostic directory.
+#
+# Usage: vg-check [GATHER_DIR]
+#
+# Exit status: 0 = no WARN, 1 = at least one WARN, 2 = usage/not-a-gather.
+
+warn_count=0
+caution_count=0
+
+usage() {
+    echo "usage: vg-check [GATHER_DIR]" >&2
+}
+
+# emit STATUS MESSAGE -- print one result line and update the summary
+# counters. MESSAGE should already start with "<check-id>: ...".
+emit() {
+    emit_status=$1
+    emit_message=$2
+    printf '%-8s %s\n' "$emit_status" "$emit_message"
+    case $emit_status in
+        WARN)
+            warn_count=$((warn_count + 1))
+            ;;
+        CAUTION)
+            caution_count=$((caution_count + 1))
+            ;;
+    esac
+}
+
+# find_file PATTERN -- look for a file under $gather_dir matching the glob
+# PATTERN. On success sets found_file to the first match and returns 0.
+# On failure sets found_file to "" and returns 1.
+find_file() {
+    found_file=""
+    for candidate in "$gather_dir"/$1; do
+        if [ -e "$candidate" ]; then
+            found_file=$candidate
+            return 0
+        fi
+    done
+    return 1
+}
+
+# body_of FILE -- print FILE's content without the 3-line "Item NNN" banner.
+body_of() {
+    tail -n +4 -- "$1"
+}
+
+# to_bytes VALUE -- convert a size such as "256k", "1.5M" or a plain byte
+# count into a plain integer number of bytes.
+to_bytes() {
+    awk -v v="$1" '
+        BEGIN {
+            n = v + 0
+            unit = substr(v, length(v), 1)
+            if (unit ~ /[kK]/) n = n * 1024
+            else if (unit ~ /[mM]/) n = n * 1024 * 1024
+            else if (unit ~ /[gG]/) n = n * 1024 * 1024 * 1024
+            printf "%d", n
+        }'
+}
+
+# vs_exact FILE NAME COLUMN -- print COLUMN of the varnishstat line whose
+# counter name is exactly NAME.
+vs_exact() {
+    awk -v name="$2" -v col="$3" '$1 == name { print $col; exit }' "$1"
+}
+
+# vs_field FILE SUFFIX COLUMN -- print COLUMN of the varnishstat line whose
+# counter name ends in exactly ".SUFFIX" (so "cache_hit" will not match
+# "cache_hitpass" or "cache_hitmiss").
+vs_field() {
+    awk -v suffix="$2" -v col="$3" '
+        {
+            s = "." suffix
+            n = length($1)
+            ls = length(s)
+            if (n >= ls && substr($1, n - ls + 1) == s) {
+                print $col
+                exit
+            }
+        }' "$1"
+}
+
+check_disk_usage() {
+    if ! find_file '*df_-h'; then
+        emit SKIP "disk-usage: no *df_-h file in gather"
+        return
+    fi
+    du_hits=$(body_of "$found_file" | awk '
+        {
+            for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9]+%$/) {
+                    pct = $i
+                    sub(/%/, "", pct)
+                    if (pct + 0 > 85) {
+                        printf "%s %s %s\n", $1, pct, $NF
+                    }
+                    break
+                }
+            }
+        }')
+    if [ -z "$du_hits" ]; then
+        emit OK "disk-usage: all filesystems below 85% used"
+        return
+    fi
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086 # intentional: split du_hits on newlines
+    set -- $du_hits
+    set +f
+    IFS=$old_ifs
+    for du_line in "$@"; do
+        du_save_ifs=$IFS
+        IFS=' '
+        set -f
+        # shellcheck disable=SC2086 # intentional: split du_line on spaces
+        set -- $du_line
+        set +f
+        IFS=$du_save_ifs
+        emit WARN "disk-usage: $1 at $2% used (mounted at $3)"
+    done
+}
+
+check_tmpfs() {
+    if ! find_file '*mount*'; then
+        emit SKIP "tmpfs: no *mount* file in gather"
+        return
+    fi
+    if body_of "$found_file" | grep -q '/var/lib/varnish type tmpfs'; then
+        emit OK "tmpfs: /var/lib/varnish is mounted on tmpfs"
+    else
+        emit WARN "tmpfs: /var/lib/varnish not mounted on tmpfs -- https://docs.varnish-software.com/varnish-enterprise/installation/#the-shared-memory-log"
+    fi
+}
+
+check_thp() {
+    if ! find_file '*hugepage_enabled'; then
+        emit SKIP "thp: no *hugepage_enabled file in gather"
+        return
+    fi
+    if body_of "$found_file" | grep -q '\[never\]'; then
+        emit OK "thp: transparent hugepages disabled ([never])"
+    else
+        emit WARN "thp: transparent hugepages enabled (want [never]) -- https://docs.varnish-software.com/varnish-enterprise/installation/#transparent-huge-pages-thp"
+    fi
+}
+
+check_max_map_count() {
+    if ! find_file '*sysctl*'; then
+        emit SKIP "max-map-count: no *sysctl* file in gather"
+        return
+    fi
+    mmc_value=$(body_of "$found_file" | awk '
+        /vm\.max_map_count/ {
+            line = $0
+            gsub(/^.*vm\.max_map_count[ \t]*=?[ \t]*/, "", line)
+            gsub(/[^0-9].*$/, "", line)
+            if (line != "") { print line; exit }
+        }')
+    if [ -z "$mmc_value" ]; then
+        emit SKIP "max-map-count: vm.max_map_count not present in $found_file"
+        return
+    fi
+    if [ "$mmc_value" -lt 262144 ] 2>/dev/null; then
+        emit WARN "max-map-count: $mmc_value < 262144 -- https://docs.varnish-software.com/varnish-enterprise/installation/#maximum-memory-maps"
+    else
+        emit OK "max-map-count: $mmc_value >= 262144"
+    fi
+}
+
+check_stat_counters() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "stat-counters: no *varnishstat_-1* file in gather"
+        return
+    fi
+    sc_hits=$(awk '
+        $2 == 0 { next }
+        {
+            name = $1
+            value = $2
+            sev = ""
+            meaning = ""
+            if (name == "MAIN.child_died") { sev = "WARN"; meaning = "child killed by signal" }
+            else if (name == "MAIN.child_panic") { sev = "WARN"; meaning = "child panicked" }
+            else if (name == "MAIN.sess_drop") { sev = "WARN"; meaning = "sessions dropped, overload" }
+            else if (name == "MAIN.threads_failed") { sev = "WARN"; meaning = "failed to create threads" }
+            else if (name == "MAIN.sess_fail") { sev = "WARN"; meaning = "session accept failures" }
+            else if (name == "MAIN.sc_vcl_failure") { sev = "WARN"; meaning = "VCL failures" }
+            else if (name ~ /ws_.*_overflow/) { sev = "WARN"; meaning = "workspace overflow" }
+            else if (name ~ /c_insert_timeout/) { sev = "WARN"; meaning = "disk overload (MSE/SSD)" }
+            else if (name ~ /aio_write_queue_overflow/) { sev = "WARN"; meaning = "disk overload" }
+            else if (name == "MAIN.req_dropped") { sev = "WARN"; meaning = "requests dropped from thread queue" }
+            else if (name == "MAIN.sess_dropped") { sev = "WARN"; meaning = "sessions dropped, older Varnish" }
+            else if (name == "MAIN.threads_limited") { sev = "CAUTION"; meaning = "thread pool hit max during a spike" }
+            else if (name == "MAIN.busy_killed") { sev = "CAUTION"; meaning = "requests killed on wait-list" }
+            else if (name == "MAIN.sess_queued") { sev = "CAUTION"; meaning = "sessions queued, thread starvation" }
+            else if (name == "MAIN.fetch_failed") { sev = "CAUTION"; meaning = "backend fetch failures" }
+            else if (name ~ /\.nuked/) { sev = "CAUTION"; meaning = "objects evicted under memory pressure" }
+            else if (name ~ /waterlevel_queue/) { sev = "CAUTION"; meaning = "MSE eviction queue backing up" }
+            else if (name ~ /waterlevel_purge/) { sev = "CAUTION"; meaning = "MSE forced purges" }
+            if (sev != "") {
+                printf "%s\t%s\t%s\t%s\n", sev, name, value, meaning
+            }
+        }' "$vs_file")
+    if [ -z "$sc_hits" ]; then
+        emit OK "stat-counters: no critical counters non-zero"
+        return
+    fi
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086 # intentional: split sc_hits on newlines
+    set -- $sc_hits
+    set +f
+    IFS=$old_ifs
+    for sc_line in "$@"; do
+        sc_save_ifs=$IFS
+        IFS='	'
+        set -f
+        # shellcheck disable=SC2086 # intentional: split sc_line on tabs
+        set -- $sc_line
+        set +f
+        IFS=$sc_save_ifs
+        emit "$1" "varnishstat:$2: $3 ($4)"
+    done
+}
+
+check_child_restart() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "child-restart: no *varnishstat_-1* file in gather"
+        return
+    fi
+    cr_mgt=$(vs_exact "$vs_file" MGT.uptime 2)
+    cr_main=$(vs_exact "$vs_file" MAIN.uptime 2)
+    if [ -z "$cr_mgt" ] || [ -z "$cr_main" ]; then
+        emit SKIP "child-restart: MGT.uptime/MAIN.uptime not present in $vs_file"
+        return
+    fi
+    cr_diff=$(awk -v a="$cr_mgt" -v b="$cr_main" 'BEGIN { printf "%d", a - b }')
+    if [ "$cr_diff" -gt 300 ] 2>/dev/null; then
+        emit CAUTION "child-restart: MGT.uptime (${cr_mgt}s) - MAIN.uptime (${cr_main}s) = ${cr_diff}s, child restarted since management start"
+    else
+        emit OK "child-restart: MAIN.uptime within ${cr_diff}s of MGT.uptime"
+    fi
+}
+
+check_expiry_queue() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "expiry-queue: no *varnishstat_-1* file in gather"
+        return
+    fi
+    eq_mailed=$(vs_exact "$vs_file" MAIN.exp_mailed 2)
+    eq_received=$(vs_exact "$vs_file" MAIN.exp_received 2)
+    if [ -z "$eq_mailed" ] || [ -z "$eq_received" ]; then
+        emit SKIP "expiry-queue: MAIN.exp_mailed/MAIN.exp_received not present in $vs_file"
+        return
+    fi
+    eq_diff=$(awk -v a="$eq_mailed" -v b="$eq_received" 'BEGIN { printf "%d", a - b }')
+    if [ "$eq_diff" -gt 0 ] 2>/dev/null; then
+        emit WARN "expiry-queue: exp_mailed - exp_received = $eq_diff, expiry queue backed up"
+    else
+        emit OK "expiry-queue: exp_mailed (${eq_mailed}) <= exp_received (${eq_received})"
+    fi
+}
+
+check_bans() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "bans: no *varnishstat_-1* file in gather"
+        return
+    fi
+    ban_bans=$(vs_exact "$vs_file" MAIN.bans 2)
+    ban_completed=$(vs_exact "$vs_file" MAIN.bans_completed 2)
+    if [ -z "$ban_bans" ] || [ -z "$ban_completed" ]; then
+        emit SKIP "bans: MAIN.bans/MAIN.bans_completed not present in $vs_file"
+        return
+    fi
+    ban_diff=$(awk -v a="$ban_bans" -v b="$ban_completed" 'BEGIN { printf "%d", a - b }')
+    if [ "$ban_diff" -gt 1000 ] 2>/dev/null; then
+        emit CAUTION "bans: $ban_diff outstanding bans (bans - bans_completed), possible ban lurker problem"
+    else
+        emit INFO "bans: $ban_diff outstanding bans"
+    fi
+}
+
+check_waitinglist() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "waitinglist: no *varnishstat_-1* file in gather"
+        return
+    fi
+    wl_sleep=$(vs_exact "$vs_file" MAIN.busy_sleep 2)
+    wl_wake=$(vs_exact "$vs_file" MAIN.busy_wakeup 2)
+    if [ -z "$wl_sleep" ] || [ -z "$wl_wake" ]; then
+        emit SKIP "waitinglist: MAIN.busy_sleep/MAIN.busy_wakeup not present in $vs_file"
+        return
+    fi
+    wl_diff=$(awk -v a="$wl_sleep" -v b="$wl_wake" 'BEGIN { printf "%d", a - b }')
+    if [ "$wl_diff" -gt 0 ] 2>/dev/null; then
+        emit CAUTION "waitinglist: busy_sleep - busy_wakeup = $wl_diff objects waiting"
+    else
+        emit OK "waitinglist: no objects stuck on the waiting list"
+    fi
+}
+
+check_hit_rate() {
+    if [ -z "$vs_file" ]; then
+        emit SKIP "hit-rate: no *varnishstat_-1* file in gather"
+        return
+    fi
+    hr_hit=$(vs_field "$vs_file" cache_hit 2); hr_hit=${hr_hit:-0}
+    hr_miss=$(vs_field "$vs_file" cache_miss 2); hr_miss=${hr_miss:-0}
+    hr_pass=$(vs_field "$vs_file" s_pass 2); hr_pass=${hr_pass:-0}
+    hr_pipe=$(vs_field "$vs_file" s_pipe 2); hr_pipe=${hr_pipe:-0}
+    hr_hfp=$(vs_field "$vs_file" cache_hitpass 2); hr_hfp=${hr_hfp:-0}
+    hr_hfm=$(vs_field "$vs_file" cache_hitmiss 2); hr_hfm=${hr_hfm:-0}
+    hr_synth=$(vs_field "$vs_file" s_synth 2); hr_synth=${hr_synth:-0}
+    hr_rate=$(vs_field "$vs_file" client_req 3); hr_rate=${hr_rate:-0}
+
+    hr_summary=$(awk -v hit="$hr_hit" -v miss="$hr_miss" -v pass="$hr_pass" \
+        -v pipe="$hr_pipe" -v hfp="$hr_hfp" -v hfm="$hr_hfm" -v synth="$hr_synth" \
+        -v rate="$hr_rate" '
+        BEGIN {
+            total = hit + miss + pass + pipe + hfp + hfm + synth
+            if (total <= 0) {
+                printf "no request data (req rate %s/s)", rate
+            } else {
+                printf "%.1f%% hit / %.1f%% miss / %.1f%% pass / %.1f%% hfp / %.1f%% hfm / %.1f%% pipe / %.1f%% synth (req rate %s/s)", hit * 100 / total, miss * 100 / total, pass * 100 / total, hfp * 100 / total, hfm * 100 / total, pipe * 100 / total, synth * 100 / total, rate
+            }
+        }')
+    emit INFO "hit-rate: $hr_summary"
+}
+
+check_params() {
+    if ! find_file '*param_show_changed'; then
+        emit SKIP "params: no *param_show_changed file in gather"
+        return
+    fi
+    pr_file=$found_file
+    pr_warned=0
+    pr_delay=$(body_of "$pr_file" | awk '$1 == "thread_pool_add_delay" { print $2; exit }')
+    if [ -n "$pr_delay" ] && awk -v v="$pr_delay" 'BEGIN { exit !(v + 0 != 0) }'; then
+        emit WARN "params: thread_pool_add_delay = $pr_delay (want 0.000)"
+        pr_warned=1
+    fi
+    for pr_name in workspace_client workspace_backend; do
+        pr_val=$(body_of "$pr_file" | awk -v n="$pr_name" '$1 == n { print $2; exit }')
+        if [ -n "$pr_val" ]; then
+            pr_bytes=$(to_bytes "$pr_val")
+            if [ "$pr_bytes" -gt 131072 ] 2>/dev/null; then
+                emit WARN "params: $pr_name = $pr_val (> 128k)"
+                pr_warned=1
+            fi
+        fi
+    done
+    if [ "$pr_warned" -eq 0 ]; then
+        emit OK "params: thread_pool_add_delay and workspace sizes within defaults"
+    fi
+}
+
+check_sick_backends() {
+    if ! find_file '*backend_list*'; then
+        emit SKIP "sick-backends: no *backend_list* file in gather"
+        return
+    fi
+    sb_hits=$(body_of "$found_file" | awk '/Sick/ { print $0 }')
+    if [ -z "$sb_hits" ]; then
+        emit OK "sick-backends: all backends healthy"
+        return
+    fi
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086 # intentional: split sb_hits on newlines
+    set -- $sb_hits
+    set +f
+    IFS=$old_ifs
+    for sb_line in "$@"; do
+        sb_name=$(printf '%s\n' "$sb_line" | awk '{print $1}')
+        emit WARN "sick-backends: $sb_name is Sick ($sb_line)"
+    done
+}
+
+check_net_errors() {
+    if ! find_file '*ip_-s_l'; then
+        emit SKIP "net-errors: no *ip_-s_l file in gather"
+        return
+    fi
+    ne_hits=$(body_of "$found_file" | awk '
+        /^[0-9]+: / {
+            iface = $2
+            sub(/:$/, "", iface)
+            next
+        }
+        /^[ \t]*RX:/ { mode = "RX"; next }
+        /^[ \t]*TX:/ { mode = "TX"; next }
+        mode != "" {
+            packets = $2 + 0
+            errors = $3 + 0
+            if (packets > 0) {
+                pct = errors * 100 / packets
+                if (pct > 10) {
+                    printf "%s\t%s\t%s\t%s\t%.1f\n", iface, mode, errors, packets, pct
+                }
+            }
+            mode = ""
+        }')
+    if [ -z "$ne_hits" ]; then
+        emit OK "net-errors: no interface above the 10% error threshold"
+        return
+    fi
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086 # intentional: split ne_hits on newlines
+    set -- $ne_hits
+    set +f
+    IFS=$old_ifs
+    for ne_line in "$@"; do
+        ne_save_ifs=$IFS
+        IFS='	'
+        set -f
+        # shellcheck disable=SC2086 # intentional: split ne_line on tabs
+        set -- $ne_line
+        set +f
+        IFS=$ne_save_ifs
+        emit WARN "net-errors: $1 $2 errors $3/$4 packets (${5}%)"
+    done
+}
+
+check_fd_usage() {
+    if ! find_file '*lsof_-p*'; then
+        emit SKIP "fd-usage: no *lsof_-p* file in gather"
+        return
+    fi
+    fd_lsof_file=$found_file
+    if ! find_file '*limits'; then
+        emit SKIP "fd-usage: no *limits file in gather"
+        return
+    fi
+    fd_limits_file=$found_file
+
+    fd_total_lines=$(body_of "$fd_lsof_file" | grep -c '.')
+    fd_count=$((fd_total_lines - 1))
+    if [ "$fd_count" -lt 0 ]; then
+        fd_count=0
+    fi
+
+    fd_soft=$(body_of "$fd_limits_file" | awk '$1 == "Max" && $2 == "open" && $3 == "files" { print $4; exit }')
+    if [ -z "$fd_soft" ]; then
+        emit SKIP "fd-usage: could not find 'Max open files' in $fd_limits_file"
+        return
+    fi
+
+    fd_pct=$(awk -v a="$fd_count" -v b="$fd_soft" 'BEGIN { if (b + 0 == 0) { print "0.0" } else { printf "%.1f", a * 100 / b } }')
+    if awk -v p="$fd_pct" 'BEGIN { exit !(p + 0 > 80) }'; then
+        emit WARN "fd-usage: $fd_count open FDs, ${fd_pct}% of soft limit $fd_soft"
+    else
+        emit OK "fd-usage: $fd_count open FDs, ${fd_pct}% of soft limit $fd_soft"
+    fi
+}
+
+check_panic() {
+    if ! find_file '*panic_show'; then
+        emit SKIP "panic: no *panic_show file in gather"
+        return
+    fi
+    pn_file=$found_file
+    if body_of "$pn_file" | grep -q 'Panic at'; then
+        emit WARN "panic: panic present, read *panic_show"
+    elif body_of "$pn_file" | grep -q 'has not panicked'; then
+        emit OK "panic: no panic recorded"
+    else
+        emit SKIP "panic: $pn_file has unrecognised content"
+    fi
+}
+
+check_oom() {
+    oom_sources=""
+    if find_file '*log_messages'; then
+        oom_sources="${oom_sources}${found_file}
+"
+    fi
+    if find_file '*log_syslog'; then
+        oom_sources="${oom_sources}${found_file}
+"
+    fi
+    if find_file '*dmesg*'; then
+        oom_sources="${oom_sources}${found_file}
+"
+    fi
+    if [ -z "$oom_sources" ]; then
+        emit SKIP "oom: no *log_messages, *log_syslog, or *dmesg* file in gather"
+        return
+    fi
+    oom_hit=0
+    oom_file=""
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086 # intentional: split oom_sources on newlines
+    set -- $oom_sources
+    set +f
+    IFS=$old_ifs
+    for oom_candidate in "$@"; do
+        if [ -n "$oom_candidate" ] && body_of "$oom_candidate" | grep -qi 'oom-killer'; then
+            oom_hit=1
+            oom_file=$oom_candidate
+        fi
+    done
+    if [ "$oom_hit" -eq 1 ]; then
+        emit WARN "oom: oom-killer invoked, see $oom_file"
+    else
+        emit OK "oom: no oom-killer activity found"
+    fi
+}
+
+if [ $# -gt 1 ]; then
+    usage
+    exit 2
+fi
+
+gather_dir=${1:-.}
+
+if [ ! -d "$gather_dir" ]; then
+    echo "vg-check: $gather_dir: not a directory" >&2
+    exit 2
+fi
+
+is_gather=0
+if [ -f "$gather_dir/varnishgather.log" ]; then
+    is_gather=1
+else
+    for nnn_candidate in "$gather_dir"/[0-9][0-9][0-9]_*; do
+        if [ -e "$nnn_candidate" ]; then
+            is_gather=1
+            break
+        fi
+    done
+fi
+
+if [ "$is_gather" -eq 0 ]; then
+    echo "vg-check: $gather_dir: does not look like a varnishgather (no varnishgather.log or [0-9][0-9][0-9]_* files found)" >&2
+    exit 2
+fi
+
+check_disk_usage
+check_tmpfs
+check_thp
+check_max_map_count
+
+if find_file '*varnishstat_-1*'; then
+    vs_file=$found_file
+else
+    vs_file=""
+fi
+
+check_stat_counters
+check_child_restart
+check_expiry_queue
+check_bans
+check_waitinglist
+check_hit_rate
+
+check_params
+check_sick_backends
+check_net_errors
+check_fd_usage
+check_panic
+check_oom
+
+printf 'SUMMARY: %d warnings, %d cautions\n' "$warn_count" "$caution_count"
+
+if [ "$warn_count" -gt 0 ]; then
+    exit 1
+fi
+exit 0
