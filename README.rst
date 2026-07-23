@@ -63,17 +63,24 @@ provided.
 A detailed guide on how to interpret a gather ships as a Claude Code skill
 (see the next section).
 
-Analyzing a gather with Claude Code
+Analyzing a gather with an AI agent
 -----------------------------------
 
-The repository ships a Claude Code skill
-(``skills/analyze-varnishgather/``) that knows how to read a gather and
-produce a diagnostic report, including helper scripts for the automated
-warning checklist (``vg-check``) and for reading the raw log
-(``vg-log``).
+The repository ships an agent skill (``skills/analyze-varnishgather/``)
+that knows how to read a gather and produce a diagnostic report,
+including helper scripts for the automated warning checklist
+(``vg-check``) and for reading the raw log (``vg-log``).
 
-Install it by symlinking it into your personal skills directory, so
-updates arrive with ``git pull``::
+The skill follows the `Agent Skills`_ open standard, so it works with
+any compatible agent (Claude Code, Codex, Cursor, Gemini CLI, ...).
+There is no standard install path, though: each tool discovers skills
+in its own directory — check your tool's documentation.
+
+.. _Agent Skills: https://agentskills.io
+
+Install it by symlinking it into your tool's skills directory, so
+updates arrive with ``git pull``.  For Claude Code that is
+``~/.claude/skills/``::
 
   git clone https://github.com/varnish/varnishgather.git
   mkdir -p ~/.claude/skills
@@ -90,6 +97,10 @@ Then, from a directory containing an extracted gather (or the
 tarball)::
 
   claude "analyze this varnishgather"
+
+The permission pre-approvals and the deletion guard in the skill use
+Claude Code extensions to the standard; other tools ignore them and
+fall back to their own permission handling.
 
 Are patches welcome?
 --------------------
