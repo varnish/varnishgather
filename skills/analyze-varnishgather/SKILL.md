@@ -4,6 +4,13 @@ description: Analyze a varnishgather diagnostic archive from a Varnish
   Cache/Enterprise server and produce a diagnostic report. Use when the
   user provides a varnishgather tarball or directory, or asks to analyze
   a "gather", check Varnish health, or troubleshoot from collected data.
+allowed-tools:
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/vg-check *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/vg-log *)
+  - Bash(tar xzf *)
+  - Bash(awk *)
+  - Bash(sort *)
+  - Bash(uniq *)
 ---
 
 # Analyzing a varnishgather
@@ -62,8 +69,11 @@ the command ran but produced no output.
 
 1. **Run the automated checker first**:
    ```sh
-   scripts/vg-check <gather-dir>
+   ${CLAUDE_SKILL_DIR}/scripts/vg-check <gather-dir>
    ```
+   Always invoke the bundled scripts by this full path — it is what the
+   skill's pre-approved permissions match, so the commands run without
+   permission prompts.
    It works through the mechanical part of the warning checklist and
    prints one line per check (`WARN`, `CAUTION`, `OK`, `INFO`, or
    `SKIP` if the needed file is absent), followed by a summary line.
@@ -79,14 +89,14 @@ the command ran but produced no output.
    sizing, jemalloc) and for any deeper manual `*varnishstat_-1*`
    analysis.
 4. If `varnishlog.raw` is present, use the recipes in
-   `references/varnishlog.md` via `scripts/vg-log` (it auto-selects a
-   local `varnishlog`/`varnishncsa` install or spins up a
-   version-matched Docker image otherwise).
+   `references/varnishlog.md` via `${CLAUDE_SKILL_DIR}/scripts/vg-log`
+   (it auto-selects a local `varnishlog`/`varnishncsa` install or spins
+   up a version-matched Docker image otherwise).
 
 ## Warning checklist
 
 Every row must be checked before finalising a report. `vg-check <id>`
-means the row is automated (run `scripts/vg-check` and read its output);
+means the row is automated (run vg-check as above and read its output);
 otherwise follow the referenced file.
 
 | # | Check | File(s) | Coverage |

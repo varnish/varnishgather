@@ -6,6 +6,11 @@ companion wrapper `scripts/vg-log`, which picks a local tool when
 available or a docker container matching the gather's Varnish version
 otherwise.
 
+`vg-log` in the recipes is shorthand for the script's full path under
+the skill directory (`<skill-dir>/scripts/vg-log`) — invoke it that way,
+matching the skill's pre-approved permissions, so no permission prompt
+fires.
+
 ## Running the tools
 
 ```
