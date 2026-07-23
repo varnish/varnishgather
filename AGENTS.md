@@ -88,7 +88,7 @@ There is no automated test suite.  Validate changes with:
 ```sh
 # Lint (install shellcheck if needed)
 shellcheck --shell=sh varnishgather
-shellcheck --shell=sh skills/analyze-varnishgather/scripts/vg-check skills/analyze-varnishgather/scripts/vg-log
+shellcheck --shell=sh skills/analyze-varnishgather/scripts/*
 
 # Smoke-test: run against a live Varnish instance
 sudo sh ./varnishgather -h          # should print usage and exit 0

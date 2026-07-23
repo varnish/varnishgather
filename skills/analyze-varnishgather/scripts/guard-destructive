@@ -1,0 +1,37 @@
+#!/bin/sh
+# PreToolUse hook for the analyze-varnishgather skill.
+#
+# Gather analysis is read-only: the archive and its extracted files are
+# the user's case data.  This hook intercepts Bash tool calls while the
+# skill is active and forces a user prompt (permissionDecision "ask")
+# for commands that delete files recursively or by force, so the agent
+# cannot silently remove the gather or its extraction directory.
+#
+# Input: hook JSON on stdin (command in .tool_input.command).
+# Output: JSON ask-decision when a destructive pattern is found;
+# exit 0 with no output otherwise (normal permission flow applies).
+
+if command -v jq >/dev/null 2>&1; then
+	cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null)
+else
+	# Fallback without jq: match against the raw JSON.  Coarser
+	# (may catch a command that merely mentions rm -rf in a string),
+	# but the failure mode is only an extra prompt.
+	cmd=$(cat)
+fi
+
+[ -n "$cmd" ] || exit 0
+
+if printf '%s' "$cmd" | grep -Eq \
+	'(^|[;&|[:space:]])rm[[:space:]]+(-[[:alnum:]]*[rfR][[:alnum:]]*[[:space:]]|-[[:alnum:]]*[rfR][[:alnum:]]*$)|(^|[;&|[:space:]])find[[:space:]].*-delete|(^|[;&|[:space:]])rmdir[[:space:]]'; then
+	cat <<'EOF'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask",
+    "permissionDecisionReason": "Gather analysis is read-only: deleting files (rm -r/-f, rmdir, find -delete) needs explicit user approval. Leave cleanup of the gather/extraction directory to the user unless they ask."
+  }
+}
+EOF
+fi
+exit 0

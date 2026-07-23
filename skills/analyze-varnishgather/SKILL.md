@@ -11,6 +11,12 @@ allowed-tools:
   - Bash(awk *)
   - Bash(sort *)
   - Bash(uniq *)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/guard-destructive"
 ---
 
 # Analyzing a varnishgather
@@ -19,6 +25,11 @@ A varnishgather is a directory of small text files (plus a few binary
 blobs) collected from a Varnish server for offline troubleshooting. This
 skill walks you through extracting it, running the automated checks, and
 producing a structured diagnostic report.
+
+**Analysis is read-only.** The archive and anything extracted from it
+are the user's case data: never delete, move, or modify them. Do not
+clean up the extraction directory when you are done — leave that to the
+user, and ask first if cleanup seems needed.
 
 The official Varnish Enterprise troubleshooting guide at
 https://docs.varnish-software.com/varnish-enterprise/troubleshooting/ is
