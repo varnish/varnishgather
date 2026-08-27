@@ -842,6 +842,8 @@ case "$VARNISH" in
 	vadmin backend.list -p "*.*";;
 esac
 vadmin panic.show
+vadmin mse4.param.show
+vadmin mse4.param.show changed
 
 case "$VARNISH" in
 *-[23].*)
