@@ -623,6 +623,8 @@ run varnishstat -1 $STATCMD
 run varnishstat -j $STATCMD
 run ldd "$(command -v varnishd)"
 run varnishadm ${VARNISHADMARG} debug.jemalloc_stats
+run varnishadm ${VARNISHADMARG} debug.yalloc_stats
+run varnishadm ${VARNISHADMARG} debug.yalloc_stats -j
 run varnishscoreboard $STATCMD
 
 NETSTAT="/bin/netstat"
