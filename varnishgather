@@ -844,6 +844,8 @@ esac
 vadmin panic.show
 vadmin mse4.param.show
 vadmin mse4.param.show changed
+vadmin tls.cert.list
+vadmin tls.cert.list -j
 
 case "$VARNISH" in
 *-[23].*)
