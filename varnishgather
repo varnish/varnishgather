@@ -800,9 +800,8 @@ for pid in ${PID_ALL_VARNISHD}; do
 	run grep "r-xp" /proc/$pid/maps
 done
 
-# Get cache memory maps
+# cache-main process status
 for pid in ${PID_CACHEMAIN}; do
-	mycat /proc/$pid/smaps
 	mycat /proc/$pid/status
 done
 
