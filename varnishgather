@@ -692,6 +692,11 @@ banner "IRQ information"
 		cp -r /proc/irq "$IRQDIR/"
 	fi
 
+	# cp keeps the read-only modes of /proc (dr-xr-xr-x), which would
+	# prevent a non-root user from removing the copy, or later the
+	# extracted tarball.
+	chmod -R u+w "$IRQDIR"
+
 	tar czf "${IRQDIR}.tar.gz" -C "$DIR" "$(item_num)_irq"
 	rm -rf "$IRQDIR"
 ) >>"$LOG" 2>&1
