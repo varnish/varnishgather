@@ -475,10 +475,12 @@ mkdir -p "$DIR"
 cd "$DIR"
 
 cleanup () {
+	status=$?
 	rm -rf "$TOPDIR"
-	exit 1
+	exit $status
 }
-trap cleanup EXIT 2
+trap cleanup EXIT
+trap 'exit 130' INT
 
 info "Varnishgather version: $VERSION"
 info "Invoked by: $USERID"
